@@ -1,6 +1,5 @@
 <div class="p-4 max-w-6xl mx-auto space-y-6">
 
-    {{-- عنوان --}}
     <h1 class="text-xl font-bold">مدیریت واحدها</h1>
 
     {{-- پیام موفقیت --}}
@@ -20,33 +19,8 @@
                 type="text"
                 wire:model.defer="name"
                 class="w-full border rounded px-3 py-2"
-                placeholder="مثلاً: مرکز خدمات جامع سلامت شماره ۵"
             >
             @error('name') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
-        </div>
-
-        {{-- استان --}}
-        <div>
-            <label class="block text-sm font-medium mb-1">استان</label>
-            <select wire:model.live="province_id" class="w-full border rounded px-3 py-2">
-                <option value="">انتخاب استان</option>
-                @foreach($provinces as $province)
-                    <option value="{{ $province->id }}">{{ $province->name }}</option>
-                @endforeach
-            </select>
-            @error('province_id') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
-        </div>
-
-        {{-- شهر --}}
-        <div>
-            <label class="block text-sm font-medium mb-1">شهر</label>
-            <select wire:model.defer="city_id" class="w-full border rounded px-3 py-2">
-                <option value="">انتخاب شهر</option>
-                @foreach($cities as $city)
-                    <option value="{{ $city->id }}">{{ $city->name }}</option>
-                @endforeach
-            </select>
-            @error('city_id') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
         </div>
 
         {{-- نوع واحد --}}
@@ -61,10 +35,42 @@
             @error('unit_type_id') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
         </div>
 
+        {{-- استان و شهر (به‌جز واحد ملی) --}}
+        @if(!$this->isNationalUnit())
+
+            <div>
+                <label class="block text-sm font-medium mb-1">استان</label>
+                <select wire:model.live="province_id" class="w-full border rounded px-3 py-2">
+                    <option value="">انتخاب استان</option>
+                    @foreach($provinces as $province)
+                        <option value="{{ $province->id }}">{{ $province->name }}</option>
+                    @endforeach
+                </select>
+                @error('province_id') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">شهر</label>
+                <select wire:model.defer="city_id" class="w-full border rounded px-3 py-2">
+                    <option value="">انتخاب شهر</option>
+                    @foreach($cities as $city)
+                        <option value="{{ $city->id }}">{{ $city->name }}</option>
+                    @endforeach
+                </select>
+                @error('city_id') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+            </div>
+
+        @else
+            <div class="text-sm text-gray-600">
+                این واحد در سطح ملی است و وابسته به استان یا شهر نیست.
+            </div>
+        @endif
+
         {{-- واحد بالادست --}}
         @if($unit_type_id)
 
             @if($this->requiresParent)
+
                 <div>
                     <label class="block text-sm font-medium mb-1">
                         واحد بالادست <span class="text-red-600">*</span>
@@ -89,9 +95,10 @@
                         <span class="text-red-600 text-sm">{{ $message }}</span>
                     @enderror
                 </div>
+
             @else
                 <div class="text-sm text-gray-600">
-                    این نوع واحد در سطح ریشه قرار دارد و واحد بالادست ندارد.
+                    این نوع واحد در سطح ریشه قرار دارد.
                 </div>
             @endif
 
@@ -104,7 +111,7 @@
         </div>
 
         {{-- دکمه‌ها --}}
-        <div class="flex gap-2 pt-2">
+        <div class="flex gap-2">
             <button
                 wire:click="{{ $unitId ? 'update' : 'save' }}"
                 @if($this->requiresParent && $parents->isEmpty()) disabled @endif
@@ -133,10 +140,9 @@
         placeholder="جستجو نام واحد..."
     >
 
-    {{-- لیست واحدها --}}
+    {{-- لیست --}}
     <div class="bg-white rounded shadow overflow-x-auto">
-
-        <table class="w-full text-right">
+        <table class="w-full">
             <thead class="bg-gray-100">
                 <tr>
                     <th class="p-3">نام</th>
@@ -148,11 +154,11 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($units as $unit)
+                @foreach($units as $unit)
                     <tr class="border-t">
                         <td class="p-3">{{ $unit->name }}</td>
                         <td class="p-3">{{ $unit->type->title }}</td>
-                        <td class="p-3">{{ $unit->city->name }}</td>
+                        <td class="p-3">{{ $unit->city?->name ?? 'ملی' }}</td>
                         <td class="p-3">{{ $unit->parent?->name ?? '-' }}</td>
                         <td class="p-3">
                             <span class="{{ $unit->is_active ? 'text-green-600' : 'text-red-600' }}">
@@ -160,10 +166,7 @@
                             </span>
                         </td>
                         <td class="p-3 space-x-2">
-                            <button
-                                wire:click="edit({{ $unit->id }})"
-                                class="text-blue-600"
-                            >
+                            <button wire:click="edit({{ $unit->id }})" class="text-blue-600">
                                 ویرایش
                             </button>
                             <button
@@ -175,13 +178,7 @@
                             </button>
                         </td>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="p-4 text-center text-gray-500">
-                            واحدی ثبت نشده است
-                        </td>
-                    </tr>
-                @endforelse
+                @endforeach
             </tbody>
         </table>
 

@@ -33,5 +33,10 @@ class Unit extends Model
     {
         return $this->hasMany(Unit::class, 'parent_id');
     }
+    public function childrenRecursive()
+{
+    return $this->children()->with('childrenRecursive');
+}
+
 }
 

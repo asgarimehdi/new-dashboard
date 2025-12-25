@@ -27,8 +27,8 @@ return new class extends Migration
         ->nullOnDelete();
 
     $table->foreignId('city_id')
-        ->constrained()
-        ->restrictOnDelete();
+         ->nullable();
+        
 
     $table->boolean('is_active')->default(true);
 

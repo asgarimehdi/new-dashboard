@@ -34,7 +34,9 @@ class UnitIndex extends Component
         return [
             'name' => 'required|string|min:3',
             'province_id' => 'required|exists:provinces,id',
-            'city_id' => 'required|exists:cities,id',
+            'city_id' => $this->isNationalUnit()
+             ? 'nullable'
+             : 'required|exists:cities,id',
             'unit_type_id' => 'required|exists:unit_types,id',
             'parent_id' => 'nullable|exists:units,id',
             'is_active' => 'boolean',
@@ -162,6 +164,12 @@ public function updatedUnitTypeId()
 {
     // وقتی نوع واحد عوض شد، parent قبلی پاک شود
     $this->parent_id = null;
+}
+private function isNationalUnit(): bool
+{
+    $type = UnitType::find($this->unit_type_id);
+
+    return $type && $type->title === 'وزارت بهداشت';
 }
 
     public function render()

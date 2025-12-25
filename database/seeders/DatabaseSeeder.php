@@ -25,7 +25,8 @@ class DatabaseSeeder extends Seeder
          $this->call(CitySeeder::class);
          $this->call(UnitTypeSeeder::class);
          $this->call(UnitTypeHierarchySeeder::class);
-
+         $this->call(NationalUnitsSeeder::class);
+ 
          
     }
 }
