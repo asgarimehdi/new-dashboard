@@ -5,6 +5,9 @@ use App\Livewire\Provinces\ProvinceIndex;
 use App\Livewire\Cities\CityIndex;
 use App\Livewire\UnitTypes\UnitTypeIndex;
 use App\Livewire\Units\UnitIndex;
+use App\Livewire\Units\UnitTree;
+
+Route::get('/units/tree', UnitTree::class);
 
 Route::get('/units', UnitIndex::class);
 
