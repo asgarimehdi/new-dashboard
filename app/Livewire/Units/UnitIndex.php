@@ -6,6 +6,7 @@ use App\Models\Unit;
 use App\Models\City;
 use App\Models\Province;
 use App\Models\UnitType;
+use App\Models\UnitTypeHierarchy;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
@@ -27,6 +28,7 @@ class UnitIndex extends Component
 
     public $search = '';
 
+    /* ===================== Rules ===================== */
     protected function rules()
     {
         return [
@@ -39,19 +41,21 @@ class UnitIndex extends Component
         ];
     }
 
+    /* ===================== Core ===================== */
     public function save()
     {
         $this->validate();
+        $this->validateHierarchy();
 
-        Unit::create($this->getUnitData());
+        Unit::create($this->unitData());
 
         $this->resetForm();
-        session()->flash('success', 'واحد ثبت شد');
+        session()->flash('success', 'واحد با موفقیت ثبت شد');
     }
 
     public function edit($id)
     {
-        $unit = Unit::findOrFail($id);
+        $unit = Unit::with('city.province')->findOrFail($id);
 
         $this->unitId = $unit->id;
         $this->name = $unit->name;
@@ -65,11 +69,12 @@ class UnitIndex extends Component
     public function update()
     {
         $this->validate();
+        $this->validateHierarchy();
 
-        Unit::findOrFail($this->unitId)->update($this->getUnitData());
+        Unit::findOrFail($this->unitId)->update($this->unitData());
 
         $this->resetForm();
-        session()->flash('success', 'واحد ویرایش شد');
+        session()->flash('success', 'واحد بروزرسانی شد');
     }
 
     public function delete($id)
@@ -78,6 +83,58 @@ class UnitIndex extends Component
         Unit::findOrFail($id)->delete();
 
         session()->flash('success', 'واحد حذف شد');
+    }
+
+    /* ===================== Hierarchy Logic ===================== */
+
+    private function requiresParent(): bool
+    {
+        $type = UnitType::find($this->unit_type_id);
+
+        return $type && $type->title !== 'وزارت بهداشت';
+    }
+
+    private function allowedParents()
+    {
+        if (!$this->unit_type_id) {
+            return collect();
+        }
+
+        $allowedTypeIds = UnitTypeHierarchy::where(
+            'child_unit_type_id',
+            $this->unit_type_id
+        )->pluck('parent_unit_type_id');
+
+        return Unit::whereIn('unit_type_id', $allowedTypeIds)->get();
+    }
+
+    private function validateHierarchy(): void
+    {
+        if ($this->requiresParent() && !$this->parent_id) {
+            $this->addError('parent_id', 'برای این نوع واحد، انتخاب بالادست الزامی است');
+            abort(422);
+        }
+
+        if ($this->parent_id) {
+            $validParentIds = $this->allowedParents()->pluck('id')->toArray();
+
+            if (!in_array($this->parent_id, $validParentIds)) {
+                $this->addError('parent_id', 'واحد بالادست انتخاب‌شده مجاز نیست');
+                abort(422);
+            }
+        }
+    }
+
+    /* ===================== Helpers ===================== */
+    private function unitData(): array
+    {
+        return [
+            'name' => $this->name,
+            'city_id' => $this->city_id,
+            'unit_type_id' => $this->unit_type_id,
+            'parent_id' => $this->parent_id,
+            'is_active' => $this->is_active,
+        ];
     }
 
     public function resetForm()
@@ -89,37 +146,41 @@ class UnitIndex extends Component
             'unit_type_id',
             'parent_id',
             'is_active',
-            'unitId'
+            'unitId',
         ]);
+
         $this->is_active = true;
     }
 
-    private function getUnitData()
-    {
-        return [
-            'name' => $this->name,
-            'city_id' => $this->city_id,
-            'unit_type_id' => $this->unit_type_id,
-            'parent_id' => $this->parent_id,
-            'is_active' => $this->is_active,
-        ];
-    }
+    /* ===================== Render ===================== */
+    public function getRequiresParentProperty(): bool
+{
+    return $this->requiresParent();
+}
+
+public function updatedUnitTypeId()
+{
+    // وقتی نوع واحد عوض شد، parent قبلی پاک شود
+    $this->parent_id = null;
+}
 
     public function render()
     {
-        $units = Unit::with(['type', 'city.province', 'parent'])
-            ->where('name', 'like', '%' . $this->search . '%')
-            ->latest()
-            ->paginate(10);
-
         return view('livewire.units.unit-index', [
-            'units' => $units,
+            'units' => Unit::with(['type', 'city.province', 'parent'])
+                ->where('name', 'like', '%' . $this->search . '%')
+                ->latest()
+                ->paginate(10),
+
             'provinces' => Province::orderBy('name')->get(),
+
             'cities' => $this->province_id
                 ? City::where('province_id', $this->province_id)->orderBy('name')->get()
                 : [],
+
             'types' => UnitType::orderBy('title')->get(),
-            'parents' => Unit::whereNull('parent_id')->orWhere('id', '!=', $this->unitId)->get(),
+
+            'parents' => $this->allowedParents(),
         ]);
     }
 }
