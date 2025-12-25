@@ -3,16 +3,25 @@
 namespace App\Livewire\Provinces;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\Province;
 
 class ProvinceIndex extends Component
 {
+    use WithPagination;
+
+    protected $paginationTheme = 'tailwind';
+
     public $name;
     public $provinceId;
+    public $search = '';
 
-    protected $rules = [
-        'name' => 'required|string|min:3|unique:provinces,name',
-    ];
+    protected function rules()
+    {
+        return [
+            'name' => 'required|string|min:3|unique:provinces,name,' . $this->provinceId,
+        ];
+    }
 
     public function save()
     {
@@ -22,7 +31,7 @@ class ProvinceIndex extends Component
             'name' => $this->name,
         ]);
 
-        $this->reset('name');
+        $this->resetForm();
         session()->flash('success', 'استان با موفقیت ثبت شد');
     }
 
@@ -35,27 +44,33 @@ class ProvinceIndex extends Component
 
     public function update()
     {
-        $this->validate([
-            'name' => 'required|string|min:3|unique:provinces,name,' . $this->provinceId,
-        ]);
+        $this->validate();
 
         Province::findOrFail($this->provinceId)->update([
             'name' => $this->name,
         ]);
 
-        $this->reset(['name', 'provinceId']);
+        $this->resetForm();
         session()->flash('success', 'استان بروزرسانی شد');
     }
 
     public function delete($id)
     {
         Province::findOrFail($id)->delete();
+        session()->flash('success', 'استان حذف شد');
+    }
+
+    public function resetForm()
+    {
+        $this->reset(['name', 'provinceId']);
     }
 
     public function render()
     {
-        return view('livewire.provinces.province-index', [
-            'provinces' => Province::latest()->get()
-        ]);
+        $provinces = Province::where('name', 'like', '%' . $this->search . '%')
+            ->latest()
+            ->paginate(10);
+
+        return view('livewire.provinces.province-index', compact('provinces'));
     }
 }
