@@ -5,7 +5,8 @@ namespace App\Livewire\Provinces;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Province;
-
+use Livewire\Attributes\Layout;
+#[Layout('components.layouts.app')]
 class ProvinceIndex extends Component
 {
     use WithPagination;
