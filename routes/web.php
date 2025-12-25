@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\Provinces\ProvinceIndex;
 use App\Livewire\Cities\CityIndex;
 use App\Livewire\UnitTypes\UnitTypeIndex;
+use App\Livewire\Units\UnitIndex;
+
+Route::get('/units', UnitIndex::class);
 
 Route::get('/unit-types', UnitTypeIndex::class);
 
