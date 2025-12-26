@@ -38,26 +38,33 @@ class TaskIndex extends Component
 
     /* ---------- CRUD ---------- */
 
-    public function save()
-    {
-        $this->validate();
+   public function save()
+{
+    $this->validate();
 
+    if ($this->taskId) {
+        // update
+        Task::findOrFail($this->taskId)->update([
+            'title' => $this->title,
+            'description' => $this->description,
+            'unit_id' => $this->unit_id,
+        ]);
+    } else {
+        // create
         $statusNew = TaskStatus::where('title', 'جدید')->first();
 
-        Task::updateOrCreate(
-            ['id' => $this->taskId],
-            [
-                'title' => $this->title,
-                'description' => $this->description,
-                'unit_id' => $this->unit_id,
-                'task_status_id' => $statusNew->id,
-                'created_by' => null, // بعداً Auth
-            ]
-        );
-
-        $this->resetForm();
-        session()->flash('success', 'تسک ذخیره شد');
+        Task::create([
+            'title' => $this->title,
+            'description' => $this->description,
+            'unit_id' => $this->unit_id,
+            'task_status_id' => $statusNew->id,
+            'created_by' => null,
+        ]);
     }
+
+    $this->resetForm();
+}
+
 
     public function edit($id)
     {
