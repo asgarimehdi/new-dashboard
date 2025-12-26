@@ -7,6 +7,9 @@ use App\Livewire\UnitTypes\UnitTypeIndex;
 use App\Livewire\Units\UnitIndex;
 use App\Livewire\Units\UnitTree;
 use App\Livewire\Users\UserIndex;
+use App\Livewire\Tasks\TaskIndex;
+
+Route::get('/tasks', TaskIndex::class);
 
 Route::get('/users', UserIndex::class);
 
