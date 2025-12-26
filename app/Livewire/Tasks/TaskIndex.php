@@ -20,6 +20,8 @@ class TaskIndex extends Component
     public $taskId = null;
     public $open_activity_task_id = null;
     public $assign_user_search = '';
+    public $task_view = 'all'; 
+    // all | inbox | sent
 
     public $title = '';
     public $description = '';
@@ -29,6 +31,15 @@ class TaskIndex extends Component
     public $search = '';
     public $assign_task_id = null;
     public $assign_user_id = null;
+    protected function currentUserId()
+{
+    return \App\Models\User::first()?->id;
+}
+public function updatedTaskView()
+{
+    $this->resetPage();
+    $this->open_activity_task_id = null;
+}
 
     protected function rules()
     {
@@ -168,29 +179,53 @@ public function changeStatus($taskId, $newStatusId)
 
     /* ---------- Render ---------- */
 
-    public function render()
-    {
-        // $tasks = Task::with(['unit', 'status'])
-        $tasks = Task::with(['unit', 'status', 'activities.oldStatus', 'activities.newStatus','assignments.fromUser',
-        'assignments.toUser'])
-            ->where(function ($q) {
-                $q->where('title', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('unit', fn ($u) =>
-                      $u->where('name', 'like', '%' . $this->search . '%')
-                  );
-            })
-            ->latest()
-            ->paginate(10);
-$assignableUsers = \App\Models\User::where('is_active', true)
-    ->where('full_name', 'like', '%' . $this->assign_user_search . '%')
-    ->orderBy('full_name')
-    ->limit(10)
-    ->get();
+   public function render()
+{
+    $query = Task::with([
+            'unit',
+            'status',
+            'activities.user',
+            'activities.oldStatus',
+            'activities.newStatus',
+            'assignments.fromUser',
+            'assignments.toUser',
+        ])
+        ->where(function ($q) {
+            $q->where('title', 'like', '%' . $this->search . '%')
+              ->orWhereHas('unit', fn ($u) =>
+                  $u->where('name', 'like', '%' . $this->search . '%')
+              );
+        });
 
-        return view('livewire.tasks.task-index', [
-            'tasks' => $tasks,
-            'units' => Unit::orderBy('name')->get(),
-             'assignableUsers' => $assignableUsers,
-        ]);
+    $currentUserId = $this->currentUserId();
+
+    if ($this->task_view === 'inbox') {
+        $query->whereHas('assignments', fn ($a) =>
+            $a->where('to_user_id', $currentUserId)
+        );
     }
+
+    if ($this->task_view === 'sent') {
+        $query->whereHas('assignments', fn ($a) =>
+            $a->where('from_user_id', $currentUserId)
+        );
+    }
+
+    $tasks = $query
+        ->latest()
+        ->paginate(10);
+
+    $assignableUsers = \App\Models\User::where('is_active', true)
+        ->where('full_name', 'like', '%' . $this->assign_user_search . '%')
+        ->orderBy('full_name')
+        ->limit(10)
+        ->get();
+
+    return view('livewire.tasks.task-index', [
+        'tasks' => $tasks,
+        'units' => Unit::orderBy('name')->get(),
+        'assignableUsers' => $assignableUsers,
+    ]);
+}
+
 }

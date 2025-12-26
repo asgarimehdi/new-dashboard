@@ -119,6 +119,33 @@
 
 </div>
 @endif
+<div class="flex gap-2 mb-4">
+
+    <button
+        wire:click="$set('task_view', 'all')"
+        class="px-3 py-1 rounded
+            {{ $task_view === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200' }}"
+    >
+        همه تسک‌ها
+    </button>
+
+    <button
+        wire:click="$set('task_view', 'inbox')"
+        class="px-3 py-1 rounded
+            {{ $task_view === 'inbox' ? 'bg-blue-600 text-white' : 'bg-gray-200' }}"
+    >
+        دریافتی
+    </button>
+
+    <button
+        wire:click="$set('task_view', 'sent')"
+        class="px-3 py-1 rounded
+            {{ $task_view === 'sent' ? 'bg-blue-600 text-white' : 'bg-gray-200' }}"
+    >
+        ارسالی
+    </button>
+
+</div>
 
 
     {{-- سرچ --}}
