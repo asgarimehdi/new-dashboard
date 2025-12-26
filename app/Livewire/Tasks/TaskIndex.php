@@ -8,7 +8,8 @@ use App\Models\TaskStatus;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
-
+use App\Models\TaskActivity;
+use App\Models\TaskAssignment;
 #[Layout('components.layouts.app')]
 class TaskIndex extends Component
 {
@@ -24,7 +25,8 @@ class TaskIndex extends Component
     public $task_status_id = null;
 
     public $search = '';
-
+    public $assign_user_id;
+    public $assign_task_id;
     protected function rules()
     {
         return [
@@ -92,12 +94,73 @@ class TaskIndex extends Component
     {
         $this->resetPage();
     }
+    /*-------------change status------------*/
+public function changeStatus($taskId, $newStatusId)
+{
+    $task = Task::findOrFail($taskId);
 
+    if ($task->task_status_id == $newStatusId) {
+        return;
+    }
+
+    $oldStatus = $task->task_status_id;
+
+    $task->update([
+        'task_status_id' => $newStatusId,
+    ]);
+
+    TaskActivity::create([
+        'task_id' => $task->id,
+        'user_id' => null, // بعداً Auth
+        'action' => 'status_change',
+        'old_status_id' => $oldStatus,
+        'new_status_id' => $newStatusId,
+        'description' => 'تغییر وضعیت تسک',
+    ]);
+}
+    /*------------asign task -------*/
+    public function assignTask()
+{
+    $this->validate([
+        'assign_user_id' => 'required|exists:users,id',
+        'assign_task_id' => 'required|exists:tasks,id',
+    ]);
+
+    $task = Task::findOrFail($this->assign_task_id);
+
+    TaskAssignment::create([
+        'task_id' => $task->id,
+        'from_user_id' => null, // بعداً Auth
+        'to_user_id' => $this->assign_user_id,
+        'note' => 'ارجاع تسک',
+    ]);
+
+    $oldStatus = $task->task_status_id;
+
+    $assignedStatus = TaskStatus::where('title', 'ارجاع شده')->first();
+
+    $task->update([
+        'task_status_id' => $assignedStatus->id,
+    ]);
+
+    TaskActivity::create([
+        'task_id' => $task->id,
+        'user_id' => null,
+        'action' => 'assign',
+        'old_status_id' => $oldStatus,
+        'new_status_id' => $assignedStatus->id,
+        'description' => 'ارجاع تسک به کاربر',
+    ]);
+
+    $this->reset(['assign_user_id', 'assign_task_id']);
+    session()->flash('success', 'تسک ارجاع شد');
+}
     /* ---------- Render ---------- */
 
     public function render()
     {
-        $tasks = Task::with(['unit', 'status'])
+        // $tasks = Task::with(['unit', 'status'])
+        $tasks = Task::with(['unit', 'status', 'activities.oldStatus', 'activities.newStatus'])
             ->where(function ($q) {
                 $q->where('title', 'like', '%' . $this->search . '%')
                   ->orWhereHas('unit', fn ($u) =>

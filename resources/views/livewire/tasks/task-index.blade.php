@@ -54,6 +54,30 @@
             @endif
         </div>
     </div>
+<div class="bg-white p-4 rounded shadow space-y-2">
+
+    <select wire:model="assign_task_id" class="w-full border rounded px-3 py-2">
+        <option value="">انتخاب تسک</option>
+        @foreach($tasks as $task)
+            <option value="{{ $task->id }}">{{ $task->title }}</option>
+        @endforeach
+    </select>
+
+    <select wire:model="assign_user_id" class="w-full border rounded px-3 py-2">
+        <option value="">انتخاب کاربر</option>
+        @foreach(\App\Models\User::where('is_active', true)->get() as $user)
+            <option value="{{ $user->id }}">{{ $user->full_name }}</option>
+        @endforeach
+    </select>
+
+    <button
+        wire:click="assignTask"
+        class="bg-indigo-600 text-white px-4 py-2 rounded"
+    >
+        ارجاع تسک
+    </button>
+
+</div>
 
     {{-- سرچ --}}
     <input
@@ -80,10 +104,21 @@
                         <td class="p-3">{{ $task->title }}</td>
                         <td class="p-3">{{ $task->unit->name }}</td>
                         <td class="p-3">
-                            <span class="text-sm text-gray-700">
-                                {{ $task->status->title }}
-                            </span>
-                        </td>
+    <select
+        wire:change="changeStatus({{ $task->id }}, $event.target.value)"
+        class="border rounded px-2 py-1 text-sm"
+    >
+        @foreach(\App\Models\TaskStatus::all() as $status)
+            <option
+                value="{{ $status->id }}"
+                @selected($task->task_status_id == $status->id)
+            >
+                {{ $status->title }}
+            </option>
+        @endforeach
+    </select>
+</td>
+
                         <td class="p-3 space-x-2">
                             <button
                                 wire:click="edit({{ $task->id }})"
