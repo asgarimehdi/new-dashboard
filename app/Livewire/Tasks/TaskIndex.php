@@ -25,8 +25,9 @@ class TaskIndex extends Component
     public $task_status_id = null;
 
     public $search = '';
-    public $assign_user_id;
-    public $assign_task_id;
+    public $assign_task_id = null;
+    public $assign_user_id = null;
+
     protected function rules()
     {
         return [
@@ -37,20 +38,19 @@ class TaskIndex extends Component
     }
 
     /* ---------- CRUD ---------- */
-
-   public function save()
+public function save()
 {
     $this->validate();
 
     if ($this->taskId) {
-        // update
+        // ویرایش Task → وضعیت دست نخورَد
         Task::findOrFail($this->taskId)->update([
             'title' => $this->title,
             'description' => $this->description,
             'unit_id' => $this->unit_id,
         ]);
     } else {
-        // create
+        // ایجاد Task جدید → وضعیت = جدید
         $statusNew = TaskStatus::where('title', 'جدید')->first();
 
         Task::create([
@@ -58,12 +58,14 @@ class TaskIndex extends Component
             'description' => $this->description,
             'unit_id' => $this->unit_id,
             'task_status_id' => $statusNew->id,
-            'created_by' => null,
+            'created_by' => null, // بعداً Auth
         ]);
     }
 
     $this->resetForm();
+    session()->flash('success', 'تسک ذخیره شد');
 }
+
 
 
     public function edit($id)
@@ -126,11 +128,11 @@ public function changeStatus($taskId, $newStatusId)
     ]);
 }
     /*------------asign task -------*/
-    public function assignTask()
+  public function assignTask()
 {
     $this->validate([
-        'assign_user_id' => 'required|exists:users,id',
         'assign_task_id' => 'required|exists:tasks,id',
+        'assign_user_id' => 'required|exists:users,id',
     ]);
 
     $task = Task::findOrFail($this->assign_task_id);
@@ -143,7 +145,6 @@ public function changeStatus($taskId, $newStatusId)
     ]);
 
     $oldStatus = $task->task_status_id;
-
     $assignedStatus = TaskStatus::where('title', 'ارجاع شده')->first();
 
     $task->update([
@@ -156,12 +157,13 @@ public function changeStatus($taskId, $newStatusId)
         'action' => 'assign',
         'old_status_id' => $oldStatus,
         'new_status_id' => $assignedStatus->id,
-        'description' => 'ارجاع تسک به کاربر',
+        'description' => 'ارجاع تسک',
     ]);
 
-    $this->reset(['assign_user_id', 'assign_task_id']);
+    $this->reset(['assign_task_id', 'assign_user_id']);
     session()->flash('success', 'تسک ارجاع شد');
 }
+
     /* ---------- Render ---------- */
 
     public function render()

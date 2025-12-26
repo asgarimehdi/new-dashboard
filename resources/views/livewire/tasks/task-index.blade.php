@@ -54,30 +54,36 @@
             @endif
         </div>
     </div>
-<div class="bg-white p-4 rounded shadow space-y-2">
+@if($assign_task_id)
+    <div class="bg-indigo-50 p-3 rounded mb-3">
+        <strong>ارجاع تسک:</strong>
 
-    <select wire:model="assign_task_id" class="w-full border rounded px-3 py-2">
-        <option value="">انتخاب تسک</option>
-        @foreach($tasks as $task)
-            <option value="{{ $task->id }}">{{ $task->title }}</option>
-        @endforeach
-    </select>
+        <select
+            wire:model="assign_user_id"
+            class="border rounded px-2 py-1 ml-2"
+        >
+            <option value="">انتخاب کاربر</option>
+            @foreach(\App\Models\User::where('is_active', true)->get() as $user)
+                <option value="{{ $user->id }}">{{ $user->full_name }}</option>
+            @endforeach
+        </select>
 
-    <select wire:model="assign_user_id" class="w-full border rounded px-3 py-2">
-        <option value="">انتخاب کاربر</option>
-        @foreach(\App\Models\User::where('is_active', true)->get() as $user)
-            <option value="{{ $user->id }}">{{ $user->full_name }}</option>
-        @endforeach
-    </select>
+        <button
+            wire:click="assignTask"
+            class="bg-indigo-600 text-white px-3 py-1 rounded"
+        >
+            ثبت ارجاع
+        </button>
 
-    <button
-        wire:click="assignTask"
-        class="bg-indigo-600 text-white px-4 py-2 rounded"
-    >
-        ارجاع تسک
-    </button>
+        <button
+            wire:click="$set('assign_task_id', null)"
+            class="ml-2 text-gray-600"
+        >
+            انصراف
+        </button>
+    </div>
+@endif
 
-</div>
 
     {{-- سرچ --}}
     <input
@@ -120,21 +126,49 @@
 </td>
 
                         <td class="p-3 space-x-2">
-                            <button
-                                wire:click="edit({{ $task->id }})"
-                                class="text-blue-600"
-                            >
-                                ویرایش
-                            </button>
-                            <button
-                                onclick="confirm('حذف شود؟') || event.stopImmediatePropagation()"
-                                wire:click="delete({{ $task->id }})"
-                                class="text-red-600"
-                            >
-                                حذف
-                            </button>
-                        </td>
+    <button
+        wire:click="
+            $set('assign_task_id', {{ $task->id }})
+        "
+        class="text-indigo-600"
+    >
+        ارجاع
+    </button>
+
+    <button
+        wire:click="edit({{ $task->id }})"
+        class="text-blue-600"
+    >
+        ویرایش
+    </button>
+
+    <button
+        onclick="confirm('حذف شود؟') || event.stopImmediatePropagation()"
+        wire:click="delete({{ $task->id }})"
+        class="text-red-600"
+    >
+        حذف
+    </button>
+</td>
+
                     </tr>
+                    <tr>
+    <td colspan="4" class="bg-gray-50 p-3 text-sm">
+        <strong>تاریخچه:</strong>
+        <ul class="mt-1 space-y-1">
+            @foreach($task->activities as $activity)
+                <li>
+                    {{ $activity->created_at->format('Y/m/d H:i') }} –
+                    {{ $activity->action }}
+                    @if($activity->oldStatus && $activity->newStatus)
+                        ({{ $activity->oldStatus->title }} → {{ $activity->newStatus->title }})
+                    @endif
+                </li>
+            @endforeach
+        </ul>
+    </td>
+</tr>
+
                 @endforeach
             </tbody>
         </table>
