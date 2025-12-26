@@ -10,7 +10,7 @@
 
     {{-- فرم --}}
     <div class="bg-white p-4 rounded shadow space-y-3">
-        <select wire:model.defer="province_id" class="w-full border rounded px-3 py-2">
+        <select wire:model.live="province_id" class="w-full border rounded px-3 py-2">
             <option value="">انتخاب استان</option>
             @foreach($provinces as $province)
                 <option value="{{ $province->id }}">{{ $province->name }}</option>
@@ -20,7 +20,7 @@
 
         <input
             type="text"
-            wire:model.defer="name"
+            wire:model.live="name"
             placeholder="نام شهر"
             class="w-full border rounded px-3 py-2"
         >
