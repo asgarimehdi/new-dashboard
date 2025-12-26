@@ -18,6 +18,8 @@ class TaskIndex extends Component
     protected $paginationTheme = 'tailwind';
 
     public $taskId = null;
+    public $open_activity_task_id = null;
+    public $assign_user_search = '';
 
     public $title = '';
     public $description = '';
@@ -169,7 +171,8 @@ public function changeStatus($taskId, $newStatusId)
     public function render()
     {
         // $tasks = Task::with(['unit', 'status'])
-        $tasks = Task::with(['unit', 'status', 'activities.oldStatus', 'activities.newStatus'])
+        $tasks = Task::with(['unit', 'status', 'activities.oldStatus', 'activities.newStatus','assignments.fromUser',
+        'assignments.toUser'])
             ->where(function ($q) {
                 $q->where('title', 'like', '%' . $this->search . '%')
                   ->orWhereHas('unit', fn ($u) =>
@@ -178,10 +181,16 @@ public function changeStatus($taskId, $newStatusId)
             })
             ->latest()
             ->paginate(10);
+$assignableUsers = \App\Models\User::where('is_active', true)
+    ->where('full_name', 'like', '%' . $this->assign_user_search . '%')
+    ->orderBy('full_name')
+    ->limit(10)
+    ->get();
 
         return view('livewire.tasks.task-index', [
             'tasks' => $tasks,
             'units' => Unit::orderBy('name')->get(),
+             'assignableUsers' => $assignableUsers,
         ]);
     }
 }

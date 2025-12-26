@@ -55,19 +55,49 @@
         </div>
     </div>
 @if($assign_task_id)
-    <div class="bg-indigo-50 p-3 rounded mb-3">
-        <strong>ارجاع تسک:</strong>
+<div class="bg-indigo-50 p-3 rounded mb-3 space-y-2">
 
-        <select
-            wire:model="assign_user_id"
-            class="border rounded px-2 py-1 ml-2"
-        >
-            <option value="">انتخاب کاربر</option>
-            @foreach(\App\Models\User::where('is_active', true)->get() as $user)
-                <option value="{{ $user->id }}">{{ $user->full_name }}</option>
-            @endforeach
-        </select>
+    <strong>ارجاع تسک</strong>
 
+    {{-- input جستجو --}}
+    <input
+        type="text"
+        wire:model.live.debounce.300ms="assign_user_search"
+        class="border rounded px-2 py-1 w-full"
+        placeholder="جستجوی نام کاربر..."
+    >
+
+    {{-- لیست نتایج --}}
+    @if($assign_user_search)
+        <ul class="border rounded bg-white max-h-48 overflow-y-auto">
+            @forelse($assignableUsers as $user)
+                <li
+                    wire:click="$set('assign_user_id', {{ $user->id }})"
+                    class="px-3 py-2 hover:bg-indigo-100 cursor-pointer"
+                >
+                    {{ $user->full_name }}
+                </li>
+            @empty
+                <li class="px-3 py-2 text-gray-500">
+                    کاربری یافت نشد
+                </li>
+            @endforelse
+        </ul>
+    @endif
+
+    {{-- کاربر انتخاب‌شده --}}
+    @if($assign_user_id)
+        @php
+            $selectedUser = \App\Models\User::find($assign_user_id);
+        @endphp
+
+        <div class="text-sm text-green-700">
+            انتخاب‌شده:
+            <strong>{{ $selectedUser->full_name }}</strong>
+        </div>
+    @endif
+
+    <div class="flex gap-2 pt-2">
         <button
             wire:click="assignTask"
             class="bg-indigo-600 text-white px-3 py-1 rounded"
@@ -76,12 +106,18 @@
         </button>
 
         <button
-            wire:click="$set('assign_task_id', null)"
-            class="ml-2 text-gray-600"
+            wire:click="
+                $set('assign_task_id', null);
+                $set('assign_user_id', null);
+                $set('assign_user_search', '');
+            "
+            class="text-gray-600"
         >
             انصراف
         </button>
     </div>
+
+</div>
 @endif
 
 
@@ -149,25 +185,81 @@
     >
         حذف
     </button>
+    <button
+    wire:click="
+        $set(
+            'open_activity_task_id',
+            {{ $open_activity_task_id === $task->id ? 'null' : $task->id }}
+        )
+    "
+    class="text-gray-600"
+>
+    تاریخچه
+</button>
+
 </td>
 
                     </tr>
-                    <tr>
+@if($open_activity_task_id === $task->id)
+<tr>
     <td colspan="4" class="bg-gray-50 p-3 text-sm">
-        <strong>تاریخچه:</strong>
-        <ul class="mt-1 space-y-1">
+        <strong>تاریخچه تسک:</strong>
+
+        <ul class="mt-2 space-y-2">
             @foreach($task->activities as $activity)
-                <li>
-                    {{ $activity->created_at->format('Y/m/d H:i') }} –
-                    {{ $activity->action }}
+            @if($activity->action === 'assign')
+    @php
+        $assignment = $task->assignments
+            ->where('created_at', '<=', $activity->created_at)
+            ->sortByDesc('created_at')
+            ->first();
+    @endphp
+
+    @if($assignment)
+        <div class="text-sm text-gray-600">
+            از:
+            {{ $assignment->fromUser?->full_name ?? 'سیستم' }}
+            →
+            به:
+            {{ $assignment->toUser?->full_name }}
+        </div>
+    @endif
+@endif
+
+                <li class="border-b pb-1">
+                    <div class="text-gray-700">
+                        {{ $activity->created_at->format('Y/m/d H:i') }}
+                    </div>
+
+                    <div>
+                        {{ match($activity->action) {
+                            'assign' => 'ارجاع تسک',
+                            'status_change' => 'تغییر وضعیت',
+                            default => $activity->action,
+                        } }}
+                    </div>
+
                     @if($activity->oldStatus && $activity->newStatus)
-                        ({{ $activity->oldStatus->title }} → {{ $activity->newStatus->title }})
+                        <div class="text-sm text-gray-600">
+                            وضعیت:
+                            {{ $activity->oldStatus->title }}
+                            →
+                            {{ $activity->newStatus->title }}
+                        </div>
                     @endif
+
+                    {{-- کاربر --}}
+                    <div class="text-sm text-gray-500">
+                        توسط:
+                        {{ $activity->user?->full_name ?? 'سیستم' }}
+                    </div>
                 </li>
             @endforeach
         </ul>
     </td>
 </tr>
+@endif
+
 
                 @endforeach
             </tbody>
