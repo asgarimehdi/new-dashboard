@@ -31,7 +31,9 @@ return new class extends Migration
     $table->foreignId('task_status_id')
         ->constrained()
         ->restrictOnDelete();
-
+$table->string('priority')->default('normal'); // low, normal, urgent
+    $table->timestamp('due_date')->nullable(); // مهلت انجام
+    $table->string('attachment_path')->nullable(); // مسیر فایل پیوست
     $table->timestamps();
 });
 

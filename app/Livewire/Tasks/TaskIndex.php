@@ -10,6 +10,7 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use App\Models\TaskActivity;
 use App\Models\TaskAssignment;
+
 #[Layout('components.layouts.app')]
 class TaskIndex extends Component
 {
@@ -31,6 +32,8 @@ class TaskIndex extends Component
     public $search = '';
     public $assign_task_id = null;
     public $assign_user_id = null;
+    public $priority = 'normal';
+    public $due_date;
     protected function currentUserId()
 {
     return \App\Models\User::first()?->id;
@@ -47,6 +50,8 @@ public function updatedTaskView()
             'title' => 'required|string|min:3',
             'description' => 'nullable|string',
             'unit_id' => 'required|exists:units,id',
+            'priority' => 'required|in:low,normal,urgent',
+             'due_date' => 'nullable|date',
         ];
     }
 
@@ -72,6 +77,8 @@ public function save()
             'unit_id' => $this->unit_id,
             'task_status_id' => $statusNew->id,
             'created_by' => null, // بعداً Auth
+            'priority' => $this->priority, 
+            'due_date' => $this->due_date, 
         ]);
     }
 
@@ -109,6 +116,8 @@ public function save()
             'description',
             'unit_id',
             'task_status_id',
+            'priority',
+             'due_date'
         ]);
     }
 

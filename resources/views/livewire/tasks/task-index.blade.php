@@ -24,7 +24,20 @@
             class="w-full border rounded px-3 py-2"
             placeholder="توضیحات (اختیاری)"
         ></textarea>
-
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+        <label class="block text-sm mb-1">اولویت</label>
+        <select wire:model="priority" class="w-full border rounded px-3 py-2">
+            <option value="low">کم</option>
+            <option value="normal">معمولی</option>
+            <option value="urgent">فوری</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-sm mb-1">مهلت انجام (تاریخ میلادی فعلاً)</label>
+        <input type="date" wire:model="due_date" class="w-full border rounded px-3 py-2">
+    </div>
+</div>
         <select
             wire:model="unit_id"
             class="w-full border rounded px-3 py-2"
@@ -157,144 +170,240 @@
     >
 
     {{-- جدول --}}
-    <div class="bg-white rounded shadow overflow-x-auto">
-        <table class="w-full">
+  {{-- جدول مدیریت تسک‌ها --}}
+<div class="bg-white rounded shadow overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-right border-collapse">
             <thead class="bg-gray-100">
                 <tr>
-                    <th class="p-3">عنوان</th>
-                    <th class="p-3">واحد</th>
-                    <th class="p-3">وضعیت</th>
-                    <th class="p-3">عملیات</th>
+                    <th class="p-3 border-b">عنوان و اولویت</th>
+                    <th class="p-3 border-b hidden md:table-cell">واحد مربوطه</th>
+                    <th class="p-3 border-b hidden lg:table-cell">تاریخ ثبت</th>
+                    <th class="p-3 border-b hidden sm:table-cell">آخرین ارجاع</th>
+                    <th class="p-3 border-b text-center">مهلت انجام</th>
+                    <th class="p-3 border-b">وضعیت</th>
+                    <th class="p-3 border-b text-center">عملیات</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($tasks as $task)
-                    <tr class="border-t">
-                        <td class="p-3">{{ $task->title }}</td>
-                        <td class="p-3">{{ $task->unit->name }}</td>
+                    {{-- ردیف اصلی: اگر مهلت کم باشد قرمز ملایم و اگر منقضی شده باشد خاکستری می‌شود --}}
+                    <tr class="border-t hover:bg-gray-50 transition-colors {{ $task->deadline_status == 'urgent' ? 'bg-red-50' : ($task->deadline_status == 'expired' ? 'bg-gray-100' : '') }}">
+                        
+                        {{-- عنوان و نشان اولویت --}}
                         <td class="p-3">
-    <select
-        wire:change="changeStatus({{ $task->id }}, $event.target.value)"
-        class="border rounded px-2 py-1 text-sm"
-    >
-        @foreach(\App\Models\TaskStatus::all() as $status)
-            <option
-                value="{{ $status->id }}"
-                @selected($task->task_status_id == $status->id)
-            >
-                {{ $status->title }}
-            </option>
-        @endforeach
-    </select>
-</td>
+                            <div class="font-bold text-gray-800">{{ $task->title }}</div>
+                            <div class="mt-1">
+                                @php
+                                    $priorityClasses = [
+                                        'urgent' => 'bg-red-600 text-white',
+                                        'normal' => 'bg-blue-100 text-blue-800',
+                                        'low'    => 'bg-gray-200 text-gray-700'
+                                    ];
+                                    $priorityLabels = ['urgent' => 'فوری', 'normal' => 'معمولی', 'low' => 'کم'];
+                                @endphp
+                                <span class="px-2 py-0.5 rounded text-[10px] font-medium {{ $priorityClasses[$task->priority] ?? $priorityClasses['normal'] }}">
+                                    {{ $priorityLabels[$task->priority] ?? 'معمولی' }}
+                                </span>
+                            </div>
+                            {{-- نمایش واحد در موبایل (چون ستون واحد در موبایل مخفی است) --}}
+                            <div class="md:hidden text-[11px] text-gray-500 mt-1">
+                                واحد: {{ $task->unit->name }}
+                            </div>
+                        </td>
 
-                        <td class="p-3 space-x-2">
-    <button
-        wire:click="
-            $set('assign_task_id', {{ $task->id }})
-        "
-        class="text-indigo-600"
-    >
-        ارجاع
-    </button>
+                        {{-- واحد (فقط در تبلت و دسکتاپ) --}}
+                        <td class="p-3 text-sm hidden md:table-cell">
+                            {{ $task->unit->name }}
+                        </td>
 
-    <button
-        wire:click="edit({{ $task->id }})"
-        class="text-blue-600"
-    >
-        ویرایش
-    </button>
+                        {{-- تاریخ ثبت شمسی (فقط در دسکتاپ) --}}
+                        <td class="p-3 text-sm text-gray-600 hidden lg:table-cell">
+                            {{ $task->shamsi_created }}
+                        </td>
 
-    <button
-        onclick="confirm('حذف شود؟') || event.stopImmediatePropagation()"
-        wire:click="delete({{ $task->id }})"
-        class="text-red-600"
-    >
-        حذف
-    </button>
-    <button
-    wire:click="
-        $set(
-            'open_activity_task_id',
-            {{ $open_activity_task_id === $task->id ? 'null' : $task->id }}
-        )
-    "
-    class="text-gray-600"
->
-    تاریخچه
-</button>
+                        {{-- آخرین ارجاع (در موبایل مخفی) --}}
+                        <td class="p-3 text-sm text-gray-600 hidden sm:table-cell text-center">
+                            @if($task->lastAssignment)
+                                {{ \Hekmatinasser\Verta\Verta::instance($task->lastAssignment->created_at)->format('Y/m/d') }}
+                            @else
+                                <span class="text-gray-400">---</span>
+                            @endif
+                        </td>
 
-</td>
+                        {{-- مهلت انجام (با افکت چشمک‌زن برای موارد فوری) --}}
+                        <td class="p-3 text-sm font-bold text-center {{ $task->deadline_status == 'urgent' ? 'text-red-600 animate-pulse' : '' }}">
+                            {{ $task->shamsi_due_date }}
+                            @if($task->deadline_status == 'expired')
+                                <div class="text-[10px] font-normal text-red-400">(منقضی شده)</div>
+                            @endif
+                        </td>
 
-                    </tr>
-@if($open_activity_task_id === $task->id)
-<tr>
-    <td colspan="4" class="bg-gray-50 p-3 text-sm">
-        <strong>تاریخچه تسک:</strong>
-
-        <ul class="mt-2 space-y-2">
-            @foreach($task->activities as $activity)
-            @if($activity->action === 'assign')
+                        {{-- تغییر وضعیت --}}
+<td class="p-3 text-center">
     @php
-        $assignment = $task->assignments
-            ->where('created_at', '<=', $activity->created_at)
-            ->sortByDesc('created_at')
-            ->first();
+        // نقشه آیدی‌های وضعیت (اینجا آیدی‌های واقعی دیتابیست را ست کن)
+        $idMap = [
+            'new'         => 1, // جدید
+            'in_progress' => 3, // در حال انجام
+            'completed'   => 4, // انجام شده
+            'assigned'    => 2, // ارجاع شده
+            'closed'      => 5, // بسته شده
+        ];
+        
+        $currentId = (int) $task->task_status_id;
+        $isCreator = (int) $task->created_by === 1; // فعلاً دستی ۱ گذاشتیم
+        
+        $lastAssignment = $task->assignments->last();
+        $isAssignee = $lastAssignment && (int) $lastAssignment->to_user_id === 1; // فعلاً دستی ۱
+
+        $statusColors = [
+            $idMap['new']         => 'bg-blue-100 text-blue-700',
+            $idMap['in_progress'] => 'bg-yellow-100 text-yellow-700',
+            $idMap['completed']   => 'bg-green-100 text-green-700',
+            $idMap['assigned']    => 'bg-indigo-100 text-indigo-700',
+            $idMap['closed']      => 'bg-gray-700 text-white',
+        ];
     @endphp
 
-    @if($assignment)
-        <div class="text-sm text-gray-600">
-            از:
-            {{ $assignment->fromUser?->full_name ?? 'سیستم' }}
-            →
-            به:
-            {{ $assignment->toUser?->full_name }}
+    <div class="flex flex-col items-center gap-2 text-right" dir="rtl">
+        {{-- نمایش نام وضعیت مستقیماً از دیتابیس --}}
+        <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $statusColors[$currentId] ?? 'bg-gray-100' }}">
+            {{ $task->status->title ?? 'بدون وضعیت' }}
+        </span>
+
+        <div class="flex flex-wrap gap-1 justify-center">
+            {{-- دسترسی گیرنده تسک --}}
+            @if($isAssignee && $currentId !== $idMap['closed'])
+                @if($currentId !== $idMap['in_progress'])
+                    <button wire:click="changeStatus({{ $task->id }}, {{ $idMap['in_progress'] }})" class="text-[9px] bg-yellow-500 text-white px-1.5 py-0.5 rounded">شروع کار</button>
+                @endif
+                @if($currentId !== $idMap['completed'])
+                    <button wire:click="changeStatus({{ $task->id }}, {{ $idMap['completed'] }})" class="text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded">اتمام کار</button>
+                @endif
+            @endif
+
+            {{-- دسترسی ایجادکننده (مدیر) --}}
+            @if($isCreator)
+                @if($currentId === $idMap['completed'])
+                    <button wire:click="changeStatus({{ $task->id }}, {{ $idMap['closed'] }})" class="text-[9px] bg-gray-800 text-white px-1.5 py-0.5 rounded">تایید و بستن</button>
+                @endif
+                
+                @if($currentId === $idMap['closed'])
+                    <button wire:click="changeStatus({{ $task->id }}, {{ $idMap['new'] }})" class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded">بازگشایی</button>
+                @endif
+            @endif
         </div>
-    @endif
-@endif
+    </div>
+</td>
 
-                <li class="border-b pb-1">
-                    <div class="text-gray-700">
-                        {{ $activity->created_at->format('Y/m/d H:i') }}
-                    </div>
+                        {{-- دکمه‌های عملیاتی --}}
+                  <td class="p-3 text-center">
+    <div class="flex items-center justify-center gap-2">
+        
+        {{-- دکمه ارجاع --}}
+        <button 
+            wire:click="$set('assign_task_id', {{ $task->id }})" 
+            class="flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-100 transition shadow-sm"
+            title="ارجاع به واحد دیگر"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            <span class="text-xs font-bold hidden xl:inline">ارجاع</span>
+        </button>
 
-                    <div>
-                        {{ match($activity->action) {
-                            'assign' => 'ارجاع تسک',
-                            'status_change' => 'تغییر وضعیت',
-                            default => $activity->action,
-                        } }}
-                    </div>
+        {{-- دکمه ویرایش --}}
+        <button 
+            wire:click="edit({{ $task->id }})" 
+            class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"
+            title="ویرایش"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+        </button>
 
-                    @if($activity->oldStatus && $activity->newStatus)
-                        <div class="text-sm text-gray-600">
-                            وضعیت:
-                            {{ $activity->oldStatus->title }}
-                            →
-                            {{ $activity->newStatus->title }}
-                        </div>
+        {{-- دکمه حذف --}}
+        <button 
+            onclick="confirm('آیا از حذف این تسک مطمئن هستید؟') || event.stopImmediatePropagation()" 
+            wire:click="delete({{ $task->id }})" 
+            class="p-1.5 text-red-600 hover:bg-red-50 rounded transition"
+            title="حذف"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </button>
+
+        {{-- دکمه تاریخچه --}}
+        <button 
+            wire:click="$set('open_activity_task_id', {{ $open_activity_task_id === $task->id ? 'null' : $task->id }})" 
+            class="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition"
+            title="تاریخچه"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </button>
+    </div>
+</td>
+                    </tr>
+
+                    {{-- بخش نمایش تاریخچه (بصورت کشویی زیر هر ردیف) --}}
+                    @if($open_activity_task_id === $task->id)
+                        <tr>
+                            <td colspan="7" class="bg-gray-50 p-4 border-b shadow-inner">
+                                <div class="max-w-3xl mx-auto">
+                                    <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                        <span>تاریخچه و فعالیت‌های تسک</span>
+                                    </h4>
+                                    <ul class="relative border-r-2 border-gray-200 pr-4 space-y-4">
+                                        @foreach($task->activities as $activity)
+                                            <li class="relative">
+                                                {{-- نقطه روی خط زمان --}}
+                                                <div class="absolute -right-[21px] mt-1.5 h-3 w-3 rounded-full bg-gray-300 border-2 border-white"></div>
+                                                
+                                                <div class="text-xs text-gray-500 font-mono">
+                                                    {{ \Hekmatinasser\Verta\Verta::instance($activity->created_at)->format('Y/m/d H:i') }}
+                                                </div>
+
+                                                <div class="text-sm">
+                                                    <span class="font-semibold text-gray-700">
+                                                        {{ match($activity->action) {
+                                                            'assign' => 'ارجاع تسک',
+                                                            'status_change' => 'تغییر وضعیت',
+                                                            default => $activity->action,
+                                                        } }}:
+                                                    </span>
+
+                                                    @if($activity->action === 'assign')
+                                                        @php
+                                                            $assignment = $task->assignments->where('created_at', '<=', $activity->created_at)->sortByDesc('created_at')->first();
+                                                        @endphp
+                                                        @if($assignment)
+                                                            <span class="text-indigo-600">از {{ $assignment->fromUser?->full_name ?? 'سیستم' }} به {{ $assignment->toUser?->full_name }}</span>
+                                                        @endif
+                                                    @elseif($activity->oldStatus && $activity->newStatus)
+                                                        <span class="text-gray-600 italic">از "{{ $activity->oldStatus->title }}" به "{{ $activity->newStatus->title }}"</span>
+                                                    @endif
+                                                </div>
+                                                <div class="text-[11px] text-gray-400 italic">توسط: {{ $activity->user?->full_name ?? 'سیستم' }}</div>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
                     @endif
-
-                    {{-- کاربر --}}
-                    <div class="text-sm text-gray-500">
-                        توسط:
-                        {{ $activity->user?->full_name ?? 'سیستم' }}
-                    </div>
-                </li>
-            @endforeach
-        </ul>
-    </td>
-</tr>
-@endif
-
-
                 @endforeach
             </tbody>
         </table>
-
-        <div class="p-3">
-            {{ $tasks->links() }}
-        </div>
     </div>
 
+    {{-- صفحه‌بندی --}}
+    <div class="p-4 bg-gray-50">
+        {{ $tasks->links() }}
+    </div>
+</div>
 </div>

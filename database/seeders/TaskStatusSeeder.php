@@ -14,7 +14,7 @@ class TaskStatusSeeder extends Seeder
             ['title' => 'ارجاع شده', 'color' => 'blue'],
             ['title' => 'در حال انجام', 'color' => 'yellow'],
             ['title' => 'انجام شده', 'color' => 'green'],
-            ['title' => 'برگشت داده شده', 'color' => 'red'],
+            ['title' => 'بسته  شده', 'color' => 'black'],
         ];
 
         foreach ($statuses as $status) {
