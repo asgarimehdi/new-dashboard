@@ -52,54 +52,54 @@
             @error('priority') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
         </div>
 
-        {{-- مهلت انجام --}}
+      
         <div>
-          <div class="md:col-span-2">
+{{--upload files--}}
+<div class="md:col-span-2" 
+     x-data="{ isUploading: false, progress: 0 }" 
+     x-on:livewire-upload-start="isUploading = true" 
+     x-on:livewire-upload-finish="isUploading = false" 
+     x-on:livewire-upload-error="isUploading = false" 
+     x-on:livewire-upload-progress="progress = $event.detail.progress">
+
     <label class="block text-sm font-bold text-gray-700 mb-2">ضمائم (اختیاری - حداکثر ۱۰ مگابایت مجموع)</label>
+    
     <div class="flex items-center justify-center w-full">
         <label class="flex flex-col w-full h-32 border-4 border-dashed border-gray-200 hover:bg-gray-100 hover:border-indigo-300 transition duration-300 cursor-pointer">
             <div class="flex flex-col items-center justify-center pt-7">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400 group-hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p class="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600">
-                    انتخاب فایل‌ها (چندگانه)
-                </p>
+                <p class="pt-1 text-sm text-gray-400">انتخاب فایل‌ها (چندگانه)</p>
             </div>
+            
             <input type="file" wire:model="files" multiple class="opacity-0" />
-            {{-- نمایش خطاهای اعتبار سنجی فایل به صورت آنی --}}
-@error('files.*') 
-    <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> 
-@enderror
-
-{{-- نمایش خطای کلی (مثلاً محدودیت حجم کل) --}}
-@error('files') 
-    <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> 
-@enderror
         </label>
     </div>
-        <div 
-    x-data="{ isUploading: false, progress: 0 }" 
-    x-on:livewire-upload-start="isUploading = true" 
-    x-on:livewire-upload-finish="isUploading = false" 
-    x-on:livewire-upload-error="isUploading = false" 
-    x-on:livewire-upload-progress="progress = $event.detail.progress"
->
 
-    <div x-show="isUploading" class="mt-2">
-        <div class="w-full bg-gray-200 rounded-full h-2.5">
-            <div class="bg-blue-600 h-2.5 rounded-full" x-bind:style="`width: ${progress}%` text-align: center;"></div>
+    <div x-show="isUploading" class="mt-4" x-cloak>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-200" 
+                 :style="`width: ${progress}%` text-align: center;">
+            </div>
         </div>
-        <span class="text-[10px] text-blue-600" x-text="`در حال آپلود: ${progress}%` "></span>
+        <div class="flex justify-between mt-1">
+            <span class="text-[10px] text-indigo-600 font-bold" x-text="`در حال آپلود: ${progress}%` "></span>
+            <span class="text-[10px] text-gray-400 italic">لطفاً صبر کنید...</span>
+        </div>
     </div>
-</div>
-    {{-- نمایش لیست فایل‌های در انتظار آپلود --}}
+
+    {{-- نمایش خطاها --}}
+    @error('files.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+    @error('files') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+
+    {{-- لیست فایل‌های انتخاب شده --}}
     @if($files)
         <div class="mt-2 grid grid-cols-2 gap-2">
             @foreach($files as $index => $file)
-                <div class="flex items-center justify-between bg-indigo-50 p-2 rounded border border-indigo-100">
-                    <span class="text-[10px] text-indigo-700 truncate">{{ $file->getClientOriginalName() }}</span>
-                    <button type="button" wire:click="removeFile({{ $index }})" class="text-red-500">
+                <div class="flex items-center justify-between bg-indigo-50 p-2 rounded border border-indigo-100 shadow-sm">
+                    <span class="text-[10px] text-indigo-700 truncate max-w-[150px]">{{ $file->getClientOriginalName() }}</span>
+                    <button type="button" wire:click="removeFile({{ $index }})" class="text-red-500 hover:bg-red-50 p-1 rounded-full">
                         <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
                     </button>
                 </div>
@@ -107,6 +107,7 @@
         </div>
     @endif
 </div>
+  {{-- مهلت انجام --}}
 <div class="col-span-1" wire:ignore>
     <label class="block text-sm font-bold text-gray-700 mb-1">مهلت انجام (شمسی)</label>
     <input 
