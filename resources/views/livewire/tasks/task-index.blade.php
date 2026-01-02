@@ -577,41 +577,47 @@
                                     <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
                                         <span>تاریخچه و فعالیت‌های تسک</span>
                                     </h4>
-                                    <ul class="relative border-r-2 border-gray-200 pr-4 space-y-4">
-                                        @foreach($task->activities as $activity)
-                                            <li class="relative">
-                                                {{-- نقطه روی خط زمان --}}
-                                                <div class="absolute -right-[21px] mt-1.5 h-3 w-3 rounded-full bg-gray-300 border-2 border-white"></div>
-                                                
-                                                <div class="text-xs text-gray-500 font-mono">
-                                                    {{ \Hekmatinasser\Verta\Verta::instance($activity->created_at)->format('Y/m/d H:i') }}
-                                                </div>
+                                   <ul class="relative border-r-2 border-gray-200 pr-4 space-y-4">
+    @foreach($task->activities->sortByDesc('created_at') as $activity)
+        <li class="relative">
+            {{-- نقطه روی خط زمان --}}
+            <div class="absolute -right-[21px] mt-1.5 h-3 w-3 rounded-full {{ $activity->action === 'حذف فایل' ? 'bg-red-400' : ($activity->action === 'آپلود فایل' ? 'bg-green-400' : 'bg-gray-300') }} border-2 border-white"></div>
+            
+            <div class="text-xs text-gray-500 font-mono">
+                {{ \Hekmatinasser\Verta\Verta::instance($activity->created_at)->format('Y/m/d H:i') }}
+            </div>
 
-                                                <div class="text-sm">
-                                                    <span class="font-semibold text-gray-700">
-                                                        {{ match($activity->action) {
-                                                            'assign' => 'ارجاع تسک',
-                                                            'status_change' => 'تغییر وضعیت',
-                                                            default => $activity->action,
-                                                        } }}:
-                                                    </span>
+            <div class="text-sm">
+                <span class="font-semibold text-gray-700">
+                    {{ match($activity->action) {
+                        'assign' => 'ارجاع تسک',
+                        'status_change' => 'تغییر وضعیت',
+                        'آپلود فایل' => '📎 آپلود فایل',
+                        'حذف فایل' => '🗑️ حذف فایل',
+                        default => $activity->action,
+                    } }}:
+                </span>
 
-                                                    @if($activity->action === 'assign')
-                                                        @php
-                                                            $assignment = $task->assignments->where('created_at', '<=', $activity->created_at)->sortByDesc('created_at')->first();
-                                                        @endphp
-                                                        @if($assignment)
-                                                            <span class="text-indigo-600">از {{ $assignment->fromUser?->full_name ?? 'سیستم' }} به {{ $assignment->toUser?->full_name }}</span>
-                                                        @endif
-                                                    @elseif($activity->oldStatus && $activity->newStatus)
-                                                        <span class="text-gray-600 italic">از "{{ $activity->oldStatus->title }}" به "{{ $activity->newStatus->title }}"</span>
-                                                    @endif
-                                                </div>
-                                                <div class="text-[11px] text-gray-400 italic">توسط: {{ $activity->user?->full_name ?? 'سیستم' }}</div>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                </div>
+                {{-- منطق نمایش جزئیات بر اساس نوع اکشن --}}
+                @if($activity->action === 'assign')
+                    @php
+                        $assignment = $task->assignments->where('created_at', '<=', $activity->created_at)->sortByDesc('created_at')->first();
+                    @endphp
+                    @if($assignment)
+                        <span class="text-indigo-600 text-xs">از {{ $assignment->fromUser?->full_name ?? 'سیستم' }} به {{ $assignment->toUser?->full_name }}</span>
+                    @endif
+                @elseif($activity->action === 'status_change' && $activity->oldStatus && $activity->newStatus)
+                    <span class="text-gray-600 italic text-xs">از "{{ $activity->oldStatus->title }}" به "{{ $activity->newStatus->title }}"</span>
+                @else
+                    {{-- نمایش توضیحات برای فایل‌ها و موارد پیش‌فرض --}}
+                    <span class="text-gray-600 text-xs">{{ $activity->description }}</span>
+                @endif
+            </div>
+
+            <div class="text-[10px] text-gray-400 italic">توسط: {{ $activity->user?->full_name ?? 'سیستم' }}</div>
+        </li>
+    @endforeach
+</ul>                               </div>
                             </td>
                         </tr>
                     @endif

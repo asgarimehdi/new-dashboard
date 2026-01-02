@@ -99,6 +99,12 @@ public function uploadMoreFiles($taskId)
             'file_name' => $file->getClientOriginalName(),
             'file_size' => $file->getSize(),
         ]);
+        // ثبت فعالیت
+        $task->activities()->create([
+            'user_id' => null,
+            'action' => 'آپلود فایل',
+            'description' => 'پیوست جدید اضافه شد: ' . $file->getClientOriginalName(),
+        ]);
     }
 
     $this->reset(['files']);
@@ -137,8 +143,22 @@ public function forceDeleteTask($id)
 public function deleteAttachment($attachmentId)
 {
     $attachment = Attachment::findOrFail($attachmentId);
+    $fileName = $attachment->file_name;
+    $taskId = $attachment->task_id;
+
+    // حذف فیزیکی از هاست
+    \Illuminate\Support\Facades\Storage::disk('public')->delete($attachment->file_path);
     Storage::disk('public')->delete($attachment->file_path);
     $attachment->delete();
+    // ثبت در لاگ فعالیت‌ها
+    \App\Models\TaskActivity::create([
+        'task_id' => $taskId,
+        'user_id' => null,
+        'action' => 'حذف فایل',
+        'description' => 'فایل پیوست حذف شد: ' . $fileName,
+    ]);
+    
+    session()->flash('success', 'فایل با موفقیت حذف شد.');
 }
 // این متد باعث می‌شود وقتی فیلتر تغییر کرد، صفحه‌بندی به صفحه ۱ برگردد
     public function updatedFilterStatus() { $this->resetPage(); }
@@ -298,6 +318,12 @@ public function save()
                 'file_name' => $file->getClientOriginalName(),
                 'file_size' => $file->getSize(),
             ]);
+            // ثبت در لاگ فعالیت‌ها
+        $task->activities()->create([
+            'user_id' => null, 
+            'action' => 'آپلود فایل',
+            'description' => 'فایل جدید پیوست شد: ' . $file->getClientOriginalName(),
+        ]);
         }
     }
 
