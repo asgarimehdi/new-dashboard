@@ -56,6 +56,37 @@ public function updatedTaskView()
     }
 
     /* ---------- CRUD ---------- */
+
+public function cancelEdit()
+{
+    $this->reset(['taskId', 'title', 'description', 'unit_id', 'priority', 'due_date', 'assign_user_id', 'assign_user_search']);
+    $this->resetErrorBag();
+    $this->resetValidation();
+}
+public function edit($id)
+{
+    $this->resetErrorBag();
+    $this->resetValidation();
+
+    $task = Task::findOrFail($id);
+
+    // امنیت: فقط ایجاد کننده (فعلاً آیدی ۱)
+    if ($task->created_by !== 1) {
+        session()->flash('error', 'عدم دسترسی برای ویرایش');
+        return;
+    }
+
+    $this->taskId = $task->id;
+    $this->title = $task->title;
+    $this->description = $task->description;
+    $this->unit_id = $task->unit_id;
+    $this->priority = $task->priority;
+    // $this->due_date = $task->due_date;
+    // در هنگام ویرایش، وضعیت فعلی را لود می‌کنیم (اگر بخواهیم نمایش دهیم)
+    $this->task_status_id = $task->task_status_id; 
+    $this->due_date = $task->due_date ? \Carbon\Carbon::parse($task->due_date)->format('Y-m-d') : null;
+}
+
 public function save()
 {
     $this->validate([
@@ -63,52 +94,45 @@ public function save()
         'unit_id' => 'required',
         'priority' => 'required',
         'due_date' => 'nullable|date',
-        'assign_user_id' => 'nullable|exists:users,id', // از همان متغیر موجود استفاده می‌کنیم
     ]);
 
-    // ۱. ایجاد تسک
-    $task = Task::create([
-        'title' => $this->title,
-        'description' => $this->description,
-        'unit_id' => $this->unit_id,
-        'created_by' => 1, // فعلاً دستی
-        'task_status_id' => 1, // وضعیت جدید (New)
-        'priority' => $this->priority,
-        'due_date' => $this->due_date,
-    ]);
-
-    // ۲. اگر در فرم ثبت، گیرنده انتخاب شده بود
-    if ($this->assign_user_id) {
-        $task->assignments()->create([
-            'from_user_id' => 1, // فعلاً دستی
-            'to_user_id' => $this->assign_user_id,
-            'description' => 'ارجاع مستقیم هنگام ثبت تسک',
+    if ($this->taskId) {
+        // --- حالت ویرایش ---
+        $task = Task::find($this->taskId);
+        $task->update([
+            'title' => $this->title,
+            'description' => $this->description,
+            'unit_id' => $this->unit_id,
+            'priority' => $this->priority,
+            'due_date' => $this->due_date,
+            'task_status_id' => 1, // طبق رویکرد شما: برگشت به وضعیت جدید
         ]);
-        
-        // تغییر وضعیت به "ارجاع شده" (ID: 2 مطابق IdMap شما)
-        $task->update(['task_status_id' => 2]);
-    }
+        session()->flash('success', 'تسک با موفقیت ویرایش و وضعیت آن بازنشانی شد.');
+    } else {
+        // --- حالت ایجاد جدید ---
+        $task = Task::create([
+            'title' => $this->title,
+            'description' => $this->description,
+            'unit_id' => $this->unit_id,
+            'created_by' => 1, // فعلاً دستی
+            'task_status_id' => 1,
+            'priority' => $this->priority,
+            'due_date' => $this->due_date,
+        ]);
 
-   
-$this->reset(['title', 'description', 'unit_id', 'priority', 'due_date', 'assign_user_id', 'assign_user_search']);
-    session()->flash('success', 'تسک با موفقیت ثبت و سازماندهی شد.');
+        // ارجاع مستقیم در هنگام ثبت (اگر کاربر انتخاب شده باشد)
+        if ($this->assign_user_id) {
+            $task->assignments()->create([
+                'from_user_id' => 1,
+                'to_user_id' => $this->assign_user_id,
+                'description' => 'ارجاع مستقیم هنگام ثبت تسک',
+            ]);
+            $task->update(['task_status_id' => 2]); // تغییر به ارجاع شده (ID: 2)
+        }
+        session()->flash('success', 'تسک جدید با موفقیت ثبت شد.');
+    }
+$this->cancelEdit();
 }
-
-
-
-    public function edit($id)
-    {
-        $this->resetErrorBag();
-        $this->resetValidation();
-
-        $task = Task::findOrFail($id);
-
-        $this->taskId = $task->id;
-        $this->title = $task->title;
-        $this->description = $task->description;
-        $this->unit_id = $task->unit_id;
-        $this->task_status_id = $task->task_status_id;
-    }
 
     public function delete($id)
     {

@@ -9,107 +9,101 @@
     @endif
 
     {{-- فرم --}}
-    <div class="bg-white p-4 rounded shadow space-y-4">
+   <div class="bg-white p-6 rounded-lg shadow-md mb-6 border-t-4 border-indigo-500">
+    <h3 class="font-bold text-xl mb-6 text-gray-800 border-b pb-2">
+        {{ $taskId ? 'ویرایش تسک: ' . $title : 'ثبت تسک جدید' }}
+    </h3>
 
-        <input
-            type="text"
-            wire:model="title"
-            class="w-full border rounded px-3 py-2"
-            placeholder="عنوان تسک"
-        >
-        @error('title') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {{-- عنوان تسک --}}
+        <div class="md:col-span-2">
+            <label class="block text-sm font-bold text-gray-700 mb-1">عنوان تسک</label>
+            <input type="text" wire:model="title" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-300 outline-none">
+            @error('title') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        </div>
 
-        <textarea
-            wire:model="description"
-            class="w-full border rounded px-3 py-2"
-            placeholder="توضیحات (اختیاری)"
-        ></textarea>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-        <label class="block text-sm mb-1">اولویت</label>
-        <select wire:model="priority" class="w-full border rounded px-3 py-2">
-            <option value="low">کم</option>
-            <option value="normal">معمولی</option>
-            <option value="urgent">فوری</option>
-        </select>
-    </div>
+        {{-- توضیحات --}}
+        <div class="md:col-span-2">
+            <label class="block text-sm font-bold text-gray-700 mb-1">توضیحات (اختیاری)</label>
+            <textarea wire:model="description" rows="3" class="w-full border rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+        </div>
 
-    <div>
-        <label class="block text-sm mb-1">مهلت انجام (تاریخ میلادی فعلاً)</label>
-        <input type="date" wire:model="due_date" class="w-full border rounded px-3 py-2">
-    </div>
-</div>
+        {{-- انتخاب واحد --}}
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">واحد مربوطه</label>
+            <select wire:model="unit_id" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300">
+                <option value="">انتخاب کنید...</option>
+                @foreach($units as $unit)
+                    <option value="{{ $unit->id }}">{{ $unit->name }}</option>
+                @endforeach
+            </select>
+            @error('unit_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        </div>
 
-        <select
-            wire:model="unit_id"
-            class="w-full border rounded px-3 py-2"
-        >
-            <option value="">انتخاب واحد</option>
-            @foreach($units as $unit)
-                <option value="{{ $unit->id }}">{{ $unit->name }}</option>
-            @endforeach
-        </select>
-        @error('unit_id') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
- <div class="bg-indigo-50 p-3 rounded mt-4 space-y-2 border border-indigo-100">
-    <strong class="text-sm text-indigo-900">ارجاع مستقیم هنگام ثبت (اختیاری)</strong>
+        {{-- اولویت --}}
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">اولویت</label>
+            <select wire:model="priority" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300">
+                <option value="low">کم</option>
+                <option value="normal">معمولی</option>
+                <option value="urgent">فوری</option>
+            </select>
+            @error('priority') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        </div>
 
-    {{-- ورودی جستجوی کاربر --}}
-    <input
-        type="text"
-        wire:model.live.debounce.300ms="assign_user_search"
-        class="border rounded px-3 py-2 w-full text-sm"
-        placeholder="جستجوی نام گیرنده..."
-    >
+        {{-- مهلت انجام --}}
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">مهلت انجام</label>
+            <input type="date" wire:model="due_date" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300">
+            @error('due_date') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        </div>
 
-    {{-- نمایش نتایج جستجو --}}
-    @if($assign_user_search)
-        <ul class="border rounded bg-white max-h-40 overflow-y-auto shadow-sm">
-            @forelse($assignableUsers as $user)
-                <li
-                    wire:click="$set('assign_user_id', {{ $user->id }})"
-                    class="px-3 py-2 hover:bg-indigo-100 cursor-pointer text-sm"
-                >
-                    {{ $user->full_name }}
-                </li>
-            @empty
-                <li class="px-3 py-2 text-gray-500 text-sm">کاربری یافت نشد</li>
-            @endforelse
-        </ul>
-    @endif
+        {{-- بخش ارجاع مستقیم (فقط در حالت ایجاد تسک جدید نمایش داده می‌شود) --}}
+        @if(!$taskId)
+        <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+            <label class="block text-sm font-bold text-indigo-900 mb-2">ارجاع مستقیم به کاربر</label>
+            <input type="text" wire:model.live.debounce.300ms="assign_user_search" 
+                   class="w-full border rounded px-3 py-2 text-sm mb-2" placeholder="جستجوی نام...">
+            
+            @if($assign_user_search)
+                <ul class="border rounded bg-white max-h-40 overflow-y-auto shadow-sm mb-2">
+                    @forelse($assignableUsers as $user)
+                        <li wire:click="$set('assign_user_id', {{ $user->id }})" 
+                            class="px-3 py-2 hover:bg-indigo-100 cursor-pointer text-sm border-b last:border-0">
+                            {{ $user->full_name }}
+                        </li>
+                    @empty
+                        <li class="px-3 py-2 text-gray-500 text-sm">کاربری یافت نشد</li>
+                    @endforelse
+                </ul>
+            @endif
 
-    {{-- نمایش کاربر انتخاب شده --}}
-    @if($assign_user_id)
-        @php
-            $selectedUser = \App\Models\User::find($assign_user_id);
-        @endphp
-        @if($selectedUser)
-            <div class="flex justify-between items-center bg-white p-2 rounded border border-green-200">
-                <span class="text-sm text-green-700">
-                    ارجاع به: <strong>{{ $selectedUser->full_name }}</strong>
-                </span>
-                <button wire:click="$set('assign_user_id', null)" class="text-red-500 text-xs">حذف</button>
-            </div>
-        @endif
-    @endif
-</div>
-        <div class="flex gap-2">
-            <button
-                wire:click="save"
-                class="bg-blue-600 text-white px-4 py-2 rounded"
-            >
-                {{ $taskId ? 'ویرایش تسک' : 'ثبت تسک' }}
-            </button>
-
-            @if($taskId)
-                <button
-                    wire:click="resetForm"
-                    class="bg-gray-300 px-4 py-2 rounded"
-                >
-                    انصراف
-                </button>
+            @if($assign_user_id)
+                @php $selectedUser = \App\Models\User::find($assign_user_id); @endphp
+                @if($selectedUser)
+                    <div class="flex justify-between items-center bg-white p-2 rounded border border-green-200">
+                        <span class="text-xs text-green-700 font-bold italic">آماده ارجاع به: {{ $selectedUser->full_name }}</span>
+                        <button wire:click="$set('assign_user_id', null)" class="text-red-500 text-xs">حذف</button>
+                    </div>
+                @endif
             @endif
         </div>
+        @endif
     </div>
+
+    {{-- دکمه‌های عملیاتی --}}
+    <div class="mt-6 flex gap-3 border-t pt-4">
+        <button wire:click="save" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg shadow transition duration-200">
+            {{ $taskId ? 'بروزرسانی تغییرات' : 'ثبت و سازماندهی' }}
+        </button>
+        
+        @if($taskId)
+           <button wire:click="cancelEdit" class="bg-gray-100 text-gray-600 px-6 py-2 rounded-lg hover:bg-gray-200 transition">
+    انصراف از ویرایش
+</button>
+        @endif
+    </div>
+</div>
 @if($assign_task_id)
 <div class="bg-indigo-50 p-3 rounded mb-3 space-y-2">
 
