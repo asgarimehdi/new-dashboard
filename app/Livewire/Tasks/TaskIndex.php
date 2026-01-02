@@ -10,7 +10,8 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use App\Models\TaskActivity;
 use App\Models\TaskAssignment;
-
+use Morilog\Jalali\Jalalian;
+use Carbon\Carbon;
 #[Layout('components.layouts.app')]
 class TaskIndex extends Component
 {
@@ -73,6 +74,7 @@ public function cancelEdit()
     $this->reset(['taskId', 'title', 'description', 'unit_id', 'priority', 'due_date', 'assign_user_id', 'assign_user_search']);
     $this->resetErrorBag();
     $this->resetValidation();
+    $this->dispatch('reset-datepicker');
 }
 public function edit($id)
 {
@@ -81,8 +83,8 @@ public function edit($id)
 
     $task = Task::findOrFail($id);
 
-    // امنیت: فقط ایجاد کننده (فعلاً آیدی ۱)
-    if ($task->created_by !== 1) {
+    // امنیت: فقط ایجاد کننده
+    if ($task->created_by !== 1) { // فعلاً دستی ۱
         session()->flash('error', 'عدم دسترسی برای ویرایش');
         return;
     }
@@ -92,10 +94,17 @@ public function edit($id)
     $this->description = $task->description;
     $this->unit_id = $task->unit_id;
     $this->priority = $task->priority;
-    // $this->due_date = $task->due_date;
-    // در هنگام ویرایش، وضعیت فعلی را لود می‌کنیم (اگر بخواهیم نمایش دهیم)
-    $this->task_status_id = $task->task_status_id; 
-    $this->due_date = $task->due_date ? \Carbon\Carbon::parse($task->due_date)->format('Y-m-d') : null;
+
+    // تبدیل تاریخ میلادی دیتابیس به شمسی برای نمایش در Datepicker
+    if ($task->due_date) {
+        $shamsiDate = Jalalian::fromCarbon(Carbon::parse($task->due_date))->format('Y/m/d');
+        $this->due_date = $shamsiDate;
+        // ارسال رویداد به مرورگر برای پر کردن اینپوت JS
+        $this->dispatch('set-datepicker', value: $shamsiDate);
+    } else {
+        $this->due_date = null;
+        $this->dispatch('reset-datepicker');
+    }
 }
 
 public function save()
@@ -104,8 +113,19 @@ public function save()
         'title' => 'required|min:3',
         'unit_id' => 'required',
         'priority' => 'required',
-        'due_date' => 'nullable|date',
+        'due_date' => 'nullable', // فرمت شمسی توسط پکیج هندل می‌شود
     ]);
+
+    // تبدیل تاریخ شمسی ورودی به میلادی برای ذخیره در دیتابیس
+    $miladiDate = null;
+    if (!empty($this->due_date)) {
+        try {
+            $miladiDate = Jalalian::fromFormat('Y/m/d', $this->due_date)->toCarbon()->toDateString();
+        } catch (\Exception $e) {
+            // اگر فرمت تاریخ اشتباه بود (پیشگیری از خطا)
+            $miladiDate = null;
+        }
+    }
 
     if ($this->taskId) {
         // --- حالت ویرایش ---
@@ -115,8 +135,8 @@ public function save()
             'description' => $this->description,
             'unit_id' => $this->unit_id,
             'priority' => $this->priority,
-            'due_date' => $this->due_date,
-            'task_status_id' => 1, // طبق رویکرد شما: برگشت به وضعیت جدید
+            'due_date' => $miladiDate, // ذخیره به صورت میلادی
+            'task_status_id' => 1, // طبق رویکرد شما: بازگشت به وضعیت جدید
         ]);
         session()->flash('success', 'تسک با موفقیت ویرایش و وضعیت آن بازنشانی شد.');
     } else {
@@ -125,26 +145,28 @@ public function save()
             'title' => $this->title,
             'description' => $this->description,
             'unit_id' => $this->unit_id,
-            'created_by' => 1, // فعلاً دستی
+            'created_by' => 1,
             'task_status_id' => 1,
             'priority' => $this->priority,
-            'due_date' => $this->due_date,
+            'due_date' => $miladiDate, // ذخیره به صورت میلادی
         ]);
 
-        // ارجاع مستقیم در هنگام ثبت (اگر کاربر انتخاب شده باشد)
+        // ارجاع مستقیم در هنگام ثبت
         if ($this->assign_user_id) {
             $task->assignments()->create([
                 'from_user_id' => 1,
                 'to_user_id' => $this->assign_user_id,
                 'description' => 'ارجاع مستقیم هنگام ثبت تسک',
             ]);
-            $task->update(['task_status_id' => 2]); // تغییر به ارجاع شده (ID: 2)
+            $task->update(['task_status_id' => 2]); // وضعیت ارجاع شده
         }
         session()->flash('success', 'تسک جدید با موفقیت ثبت شد.');
     }
-$this->cancelEdit();
-}
 
+    // ریست کردن فرم و دیت‌پیکر
+    $this->cancelEdit();
+    $this->dispatch('reset-datepicker');
+}
     public function delete($id)
     {
         Task::findOrFail($id)->delete();

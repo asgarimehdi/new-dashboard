@@ -53,8 +53,51 @@
 
         {{-- مهلت انجام --}}
         <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">مهلت انجام</label>
-            <input type="date" wire:model="due_date" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300">
+          
+<div class="col-span-1" wire:ignore>
+    <label class="block text-sm font-bold text-gray-700 mb-1">مهلت انجام (شمسی)</label>
+    <input 
+        data-jdp 
+        type="text" 
+        id="due_date_picker"
+        class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300" 
+        placeholder="انتخاب تاریخ..."
+        autocomplete="off"
+    >
+</div>
+
+<script>
+    // فعال‌سازی انتخابگر تاریخ
+    jalaliDatepicker.startWatch();
+
+    // گوش دادن به تغییرات اینپوت و ارسال به لایووایر
+    document.getElementById('due_date_picker').addEventListener('jdp:change', function (e) {
+        let date = e.target.value;
+        // ارسال مقدار به متغیر due_date در لایووایر
+        @this.set('due_date', date);
+    });
+
+    // برای زمانی که از حالت ویرایش خارج می‌شویم یا فرم ریست می‌شود
+    window.addEventListener('reset-datepicker', event => {
+        document.getElementById('due_date_picker').value = '';
+    });
+    
+    // برای پر کردن اینپوت هنگام کلیک روی دکمه ویرایش
+    window.addEventListener('set-datepicker', event => {
+        document.getElementById('due_date_picker').value = event.detail.value;
+    });
+    // تنظیم مقدار وقتی دکمه ویرایش زده می‌شود
+    window.addEventListener('set-datepicker', event => {
+        const input = document.getElementById('due_date_picker');
+        if (input) input.value = event.detail.value;
+    });
+
+    // خالی کردن مقدار وقتی انصراف یا ذخیره زده می‌شود
+    window.addEventListener('reset-datepicker', event => {
+        const input = document.getElementById('due_date_picker');
+        if (input) input.value = '';
+    });
+</script>
             @error('due_date') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
         </div>
 
