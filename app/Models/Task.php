@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Hekmatinasser\Verta\Verta;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\SoftDeletes;
 class Task extends Model
 {
     protected $fillable = [
@@ -17,6 +18,9 @@ class Task extends Model
         'due_date', 
         'attachment_path'
     ];
+    use SoftDeletes; 
+
+    protected $dates = ['deleted_at']; 
 // فیلدهایی که باید به صورت تاریخ باشند
     protected $casts = [
         'due_date' => 'datetime',

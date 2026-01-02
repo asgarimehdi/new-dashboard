@@ -170,7 +170,7 @@ public function save()
     public function delete($id)
     {
         Task::findOrFail($id)->delete();
-        session()->flash('success', 'تسک حذف شد');
+session()->flash('success', 'تسک با موفقیت به زباله‌دان منتقل شد.');
     }
 
     public function resetForm()

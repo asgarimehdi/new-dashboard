@@ -35,6 +35,7 @@ $table->string('priority')->default('normal'); // low, normal, urgent
     $table->timestamp('due_date')->nullable(); // مهلت انجام
     $table->string('attachment_path')->nullable(); // مسیر فایل پیوست
     $table->timestamps();
+    $table->softDeletes();
 });
 
     }
