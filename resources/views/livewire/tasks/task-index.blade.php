@@ -33,11 +33,13 @@
             <option value="urgent">فوری</option>
         </select>
     </div>
+
     <div>
         <label class="block text-sm mb-1">مهلت انجام (تاریخ میلادی فعلاً)</label>
         <input type="date" wire:model="due_date" class="w-full border rounded px-3 py-2">
     </div>
 </div>
+
         <select
             wire:model="unit_id"
             class="w-full border rounded px-3 py-2"
@@ -48,7 +50,48 @@
             @endforeach
         </select>
         @error('unit_id') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
+ <div class="bg-indigo-50 p-3 rounded mt-4 space-y-2 border border-indigo-100">
+    <strong class="text-sm text-indigo-900">ارجاع مستقیم هنگام ثبت (اختیاری)</strong>
 
+    {{-- ورودی جستجوی کاربر --}}
+    <input
+        type="text"
+        wire:model.live.debounce.300ms="assign_user_search"
+        class="border rounded px-3 py-2 w-full text-sm"
+        placeholder="جستجوی نام گیرنده..."
+    >
+
+    {{-- نمایش نتایج جستجو --}}
+    @if($assign_user_search)
+        <ul class="border rounded bg-white max-h-40 overflow-y-auto shadow-sm">
+            @forelse($assignableUsers as $user)
+                <li
+                    wire:click="$set('assign_user_id', {{ $user->id }})"
+                    class="px-3 py-2 hover:bg-indigo-100 cursor-pointer text-sm"
+                >
+                    {{ $user->full_name }}
+                </li>
+            @empty
+                <li class="px-3 py-2 text-gray-500 text-sm">کاربری یافت نشد</li>
+            @endforelse
+        </ul>
+    @endif
+
+    {{-- نمایش کاربر انتخاب شده --}}
+    @if($assign_user_id)
+        @php
+            $selectedUser = \App\Models\User::find($assign_user_id);
+        @endphp
+        @if($selectedUser)
+            <div class="flex justify-between items-center bg-white p-2 rounded border border-green-200">
+                <span class="text-sm text-green-700">
+                    ارجاع به: <strong>{{ $selectedUser->full_name }}</strong>
+                </span>
+                <button wire:click="$set('assign_user_id', null)" class="text-red-500 text-xs">حذف</button>
+            </div>
+        @endif
+    @endif
+</div>
         <div class="flex gap-2">
             <button
                 wire:click="save"
@@ -242,38 +285,45 @@
                         {{-- تغییر وضعیت --}}
 <td class="p-3 text-center">
     @php
-        // نقشه آیدی‌های وضعیت (اینجا آیدی‌های واقعی دیتابیست را ست کن)
         $idMap = [
             'new'         => 1, // جدید
+            'assigned'    => 2, // ارجاع شده
             'in_progress' => 3, // در حال انجام
             'completed'   => 4, // انجام شده
-            'assigned'    => 2, // ارجاع شده
             'closed'      => 5, // بسته شده
         ];
         
         $currentId = (int) $task->task_status_id;
-        $isCreator = (int) $task->created_by === 1; // فعلاً دستی ۱ گذاشتیم
+        $isCreator = (int) $task->created_by === 1; // دستی
         
         $lastAssignment = $task->assignments->last();
-        $isAssignee = $lastAssignment && (int) $lastAssignment->to_user_id === 1; // فعلاً دستی ۱
+        $isAssignee = $lastAssignment && (int) $lastAssignment->to_user_id === 1; // دستی
 
         $statusColors = [
             $idMap['new']         => 'bg-blue-100 text-blue-700',
+            $idMap['assigned']    => 'bg-indigo-100 text-indigo-700',
             $idMap['in_progress'] => 'bg-yellow-100 text-yellow-700',
             $idMap['completed']   => 'bg-green-100 text-green-700',
-            $idMap['assigned']    => 'bg-indigo-100 text-indigo-700',
             $idMap['closed']      => 'bg-gray-700 text-white',
         ];
     @endphp
 
     <div class="flex flex-col items-center gap-2 text-right" dir="rtl">
-        {{-- نمایش نام وضعیت مستقیماً از دیتابیس --}}
         <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $statusColors[$currentId] ?? 'bg-gray-100' }}">
             {{ $task->status->title ?? 'بدون وضعیت' }}
         </span>
 
         <div class="flex flex-wrap gap-1 justify-center">
-            {{-- دسترسی گیرنده تسک --}}
+            
+            {{-- ۱. دکمه ارجاع: نمایش برای مدیر یا کسی که تسک فعلاً دست اوست --}}
+            @if(($isCreator || $isAssignee) && $currentId !== $idMap['closed'])
+                <button wire:click="$set('assign_task_id', {{ $task->id }})" 
+                        class="text-[9px] bg-indigo-600 text-white px-1.5 py-0.5 rounded shadow hover:bg-indigo-700">
+                    ارجاع
+                </button>
+            @endif
+
+            {{-- ۲. دسترسی‌های گیرنده تسک --}}
             @if($isAssignee && $currentId !== $idMap['closed'])
                 @if($currentId !== $idMap['in_progress'])
                     <button wire:click="changeStatus({{ $task->id }}, {{ $idMap['in_progress'] }})" class="text-[9px] bg-yellow-500 text-white px-1.5 py-0.5 rounded">شروع کار</button>
@@ -283,12 +333,17 @@
                 @endif
             @endif
 
-            {{-- دسترسی ایجادکننده (مدیر) --}}
+            {{-- ۳. دسترسی‌های مدیر (ایجادکننده) --}}
             @if($isCreator)
-                @if($currentId === $idMap['completed'])
-                    <button wire:click="changeStatus({{ $task->id }}, {{ $idMap['closed'] }})" class="text-[9px] bg-gray-800 text-white px-1.5 py-0.5 rounded">تایید و بستن</button>
+                {{-- دکمه بستن/لغو: مدیر همیشه می‌تواند ببندد مگر اینکه قبلاً بسته شده باشد --}}
+                @if($currentId !== $idMap['closed'])
+                    <button wire:click="changeStatus({{ $task->id }}, {{ $idMap['closed'] }})" 
+                            class="text-[9px] {{ $currentId === $idMap['completed'] ? 'bg-gray-800' : 'bg-red-700' }} text-white px-1.5 py-0.5 rounded shadow">
+                        {{ $currentId === $idMap['completed'] ? 'تایید و بستن' : 'لغو/بستن تسک' }}
+                    </button>
                 @endif
                 
+                {{-- بازگشایی تسک بسته شده --}}
                 @if($currentId === $idMap['closed'])
                     <button wire:click="changeStatus({{ $task->id }}, {{ $idMap['new'] }})" class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded">بازگشایی</button>
                 @endif

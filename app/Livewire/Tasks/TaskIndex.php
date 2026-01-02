@@ -58,32 +58,40 @@ public function updatedTaskView()
     /* ---------- CRUD ---------- */
 public function save()
 {
-    $this->validate();
+    $this->validate([
+        'title' => 'required|min:3',
+        'unit_id' => 'required',
+        'priority' => 'required',
+        'due_date' => 'nullable|date',
+        'assign_user_id' => 'nullable|exists:users,id', // از همان متغیر موجود استفاده می‌کنیم
+    ]);
 
-    if ($this->taskId) {
-        // ویرایش Task → وضعیت دست نخورَد
-        Task::findOrFail($this->taskId)->update([
-            'title' => $this->title,
-            'description' => $this->description,
-            'unit_id' => $this->unit_id,
-        ]);
-    } else {
-        // ایجاد Task جدید → وضعیت = جدید
-        $statusNew = TaskStatus::where('title', 'جدید')->first();
+    // ۱. ایجاد تسک
+    $task = Task::create([
+        'title' => $this->title,
+        'description' => $this->description,
+        'unit_id' => $this->unit_id,
+        'created_by' => 1, // فعلاً دستی
+        'task_status_id' => 1, // وضعیت جدید (New)
+        'priority' => $this->priority,
+        'due_date' => $this->due_date,
+    ]);
 
-        Task::create([
-            'title' => $this->title,
-            'description' => $this->description,
-            'unit_id' => $this->unit_id,
-            'task_status_id' => $statusNew->id,
-            'created_by' => null, // بعداً Auth
-            'priority' => $this->priority, 
-            'due_date' => $this->due_date, 
+    // ۲. اگر در فرم ثبت، گیرنده انتخاب شده بود
+    if ($this->assign_user_id) {
+        $task->assignments()->create([
+            'from_user_id' => 1, // فعلاً دستی
+            'to_user_id' => $this->assign_user_id,
+            'description' => 'ارجاع مستقیم هنگام ثبت تسک',
         ]);
+        
+        // تغییر وضعیت به "ارجاع شده" (ID: 2 مطابق IdMap شما)
+        $task->update(['task_status_id' => 2]);
     }
 
-    $this->resetForm();
-    session()->flash('success', 'تسک ذخیره شد');
+   
+$this->reset(['title', 'description', 'unit_id', 'priority', 'due_date', 'assign_user_id', 'assign_user_search']);
+    session()->flash('success', 'تسک با موفقیت ثبت و سازماندهی شد.');
 }
 
 
