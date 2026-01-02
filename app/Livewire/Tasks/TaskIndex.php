@@ -37,7 +37,30 @@ class TaskIndex extends Component
     public $due_date;
     public $filter_status = '';
     public $filter_priority = '';
+public $show_trash = false; // وضعیت نمایش زباله‌دان
 
+// متد برای جابجایی بین لیست اصلی و زباله‌دان
+public function toggleTrash()
+{
+    $this->show_trash = !$this->show_trash;
+    $this->resetPage(); // برگشت به صفحه اول در هر جابجایی
+}
+
+// متد بازیابی تسک
+public function restoreTask($id)
+{
+    $task = Task::withTrashed()->findOrFail($id);
+    $task->restore();
+    session()->flash('success', 'تسک با موفقیت بازیابی شد.');
+}
+
+// متد حذف دائمی (پاک کردن از دیتابیس)
+public function forceDeleteTask($id)
+{
+    $task = Task::withTrashed()->findOrFail($id);
+    $task->forceDelete();
+    session()->flash('success', 'تسک برای همیشه پاک شد.');
+}
 // این متد باعث می‌شود وقتی فیلتر تغییر کرد، صفحه‌بندی به صفحه ۱ برگردد
     public function updatedFilterStatus() { $this->resetPage(); }
     public function updatedFilterPriority() { $this->resetPage(); }
@@ -252,57 +275,64 @@ public function changeStatus($taskId, $newStatusId)
 }
 
     /* ---------- Render ---------- */
-
-  public function render()
+public function render()
 {
+    // ۱. ایجاد کوئری پایه با تمام روابط لازم
     $query = Task::with([
-            'unit',
-            'status',
-            'activities.user',
-            'activities.oldStatus',
-            'activities.newStatus',
-            'assignments.fromUser',
-            'assignments.toUser',
-        ])
-        ->where(function ($q) {
+        'unit',
+        'status',
+        'activities.user',
+        'activities.oldStatus',
+        'activities.newStatus',
+        'assignments.fromUser',
+        'assignments.toUser',
+    ]);
+
+    // ۲. بررسی حالت نمایش زباله‌دان
+    if ($this->show_trash) {
+        // فقط نمایش موارد حذف شده
+        $query->onlyTrashed();
+    } else {
+        // --- اعمال فیلترهای لیست اصلی ---
+
+        // جستجوی متنی (عنوان و واحد)
+        $query->where(function ($q) {
             $q->where('title', 'like', '%' . $this->search . '%')
               ->orWhereHas('unit', fn ($u) =>
                   $u->where('name', 'like', '%' . $this->search . '%')
               );
         });
 
-    // --- شروع بخش فیلترهای جدید ---
-    
-    // فیلتر بر اساس وضعیت (اگر انتخاب شده باشد)
-   if (filled($this->filter_status)) {
-    $query->where('task_status_id', $this->filter_status);
-}
+        // فیلتر وضعیت
+        if (filled($this->filter_status)) {
+            $query->where('task_status_id', $this->filter_status);
+        }
 
-    // فیلتر بر اساس اولویت (اگر انتخاب شده باشد)
-    if (filled($this->filter_priority)) {
-    $query->where('priority', $this->filter_priority);
-}
-    
-    // --- پایان بخش فیلترهای جدید ---
+        // فیلتر اولویت
+        if (filled($this->filter_priority)) {
+            $query->where('priority', $this->filter_priority);
+        }
 
-    $currentUserId = $this->currentUserId();
+        // فیلتر Inbox / Sent
+        $currentUserId = $this->currentUserId();
 
-    if ($this->task_view === 'inbox') {
-        $query->whereHas('assignments', fn ($a) =>
-            $a->where('to_user_id', $currentUserId)
-        );
+        if ($this->task_view === 'inbox') {
+            $query->whereHas('assignments', fn ($a) =>
+                $a->where('to_user_id', $currentUserId)
+            );
+        }
+
+        if ($this->task_view === 'sent') {
+            $query->whereHas('assignments', fn ($a) =>
+                $a->where('from_user_id', $currentUserId)
+            );
+        }
     }
 
-    if ($this->task_view === 'sent') {
-        $query->whereHas('assignments', fn ($a) =>
-            $a->where('from_user_id', $currentUserId)
-        );
-    }
+    // ۳. اجرای نهایی کوئری و صفحه‌بندی
+    $tasks = $query->latest()->paginate(10);
 
-    $tasks = $query
-        ->latest()
-        ->paginate(10);
-
+    // ۴. دریافت لیست کاربران برای بخش ارجاع (جستجوی لایو)
     $assignableUsers = \App\Models\User::where('is_active', true)
         ->where('full_name', 'like', '%' . $this->assign_user_search . '%')
         ->orderBy('full_name')
@@ -312,7 +342,7 @@ public function changeStatus($taskId, $newStatusId)
     return view('livewire.tasks.task-index', [
         'tasks' => $tasks,
         'units' => Unit::orderBy('name')->get(),
-        'statuses' => \App\Models\TaskStatus::all(), // این را برای نمایش در دراپ‌داون فیلتر اضافه کردیم
+        'statuses' => \App\Models\TaskStatus::all(),
         'assignableUsers' => $assignableUsers,
     ]);
 }
