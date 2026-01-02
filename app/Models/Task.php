@@ -82,5 +82,8 @@ class Task extends Model
 {
     return $this->hasMany(TaskActivity::class);
 }
-
+public function attachments()
+{
+    return $this->hasMany(Attachment::class);
+}
 }

@@ -53,7 +53,36 @@
 
         {{-- مهلت انجام --}}
         <div>
-          
+          <div class="md:col-span-2">
+    <label class="block text-sm font-bold text-gray-700 mb-2">ضمائم (اختیاری - حداکثر ۱۰ مگابایت مجموع)</label>
+    <div class="flex items-center justify-center w-full">
+        <label class="flex flex-col w-full h-32 border-4 border-dashed border-gray-200 hover:bg-gray-100 hover:border-indigo-300 transition duration-300 cursor-pointer">
+            <div class="flex flex-col items-center justify-center pt-7">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400 group-hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p class="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600">
+                    انتخاب فایل‌ها (چندگانه)
+                </p>
+            </div>
+            <input type="file" wire:model="files" multiple class="opacity-0" />
+        </label>
+    </div>
+    
+    {{-- نمایش لیست فایل‌های در انتظار آپلود --}}
+    @if($files)
+        <div class="mt-2 grid grid-cols-2 gap-2">
+            @foreach($files as $index => $file)
+                <div class="flex items-center justify-between bg-indigo-50 p-2 rounded border border-indigo-100">
+                    <span class="text-[10px] text-indigo-700 truncate">{{ $file->getClientOriginalName() }}</span>
+                    <button type="button" wire:click="removeFile({{ $index }})" class="text-red-500">
+                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
+                    </button>
+                </div>
+            @endforeach
+        </div>
+    @endif
+</div>
 <div class="col-span-1" wire:ignore>
     <label class="block text-sm font-bold text-gray-700 mb-1">مهلت انجام (شمسی)</label>
     <input 
@@ -133,7 +162,21 @@
         </div>
         @endif
     </div>
-
+@if($taskId)
+    <div class="mt-4 border-t pt-2">
+        <label class="block text-xs font-bold text-gray-600 mb-2">فایل‌های پیوست شده فعلی:</label>
+        <div class="space-y-2">
+            @foreach(\App\Models\Attachment::where('task_id', $this->taskId)->get() as $attach)
+                <div class="flex justify-between items-center bg-gray-50 p-2 rounded border">
+                    <span class="text-xs text-gray-700">{{ $attach->file_name }}</span>
+                    <button type="button" wire:click="deleteAttachment({{ $attach->id }})" class="text-red-500 hover:text-red-700">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
     {{-- دکمه‌های عملیاتی --}}
     <div class="mt-6 flex gap-3 border-t pt-4">
         <button wire:click="save" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg shadow transition duration-200">
@@ -285,6 +328,7 @@
         {{ $show_trash ? 'بازگشت به لیست اصلی' : 'مشاهده زباله‌دان 🗑️' }}
     </button>
 </div>
+
     {{-- جدول --}}
   {{-- جدول مدیریت تسک‌ها --}}
 <div class="bg-white rounded shadow overflow-hidden">
@@ -490,6 +534,11 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         </button>
+        <button wire:click="toggleAttachments({{ $task->id }})" class="text-orange-600 hover:text-orange-900" title="مشاهده پیوست‌ها">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+    </svg>
+</button>
         @endif
     </div>
 </td>
@@ -541,6 +590,62 @@
                             </td>
                         </tr>
                     @endif
+                    {{-- ردیف نمایش پیوست‌ها (دقیقاً بعد از <tr> اصلی تسک) --}}
+@if($opened_attachments_id === $task->id)
+    <tr class="bg-orange-50">
+        <td colspan="10" class="p-4 border-b">
+            <div class="flex flex-col gap-3">
+                <h5 class="font-bold text-sm text-orange-800 flex items-center gap-2">
+                    📎 لیست پیوست‌های تسک:
+                </h5>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    @forelse($task->attachments as $attach)
+                        <div class="flex justify-between items-center bg-white p-2 rounded shadow-sm border border-orange-200">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-medium text-gray-800">{{ Str::limit($attach->file_name, 30) }}</span>
+                                <span class="text-[10px] text-gray-500">
+                                    توسط: {{ $attach->user->full_name }} | {{ number_format($attach->file_size / 1024, 1) }} KB
+                                </span>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="{{ asset('storage/' . $attach->file_path) }}" target="_blank" class="text-blue-600 hover:underline text-xs font-bold">دانلود</a>
+                                {{-- دکمه حذف فایل فقط برای آپلودکننده (در آینده) --}}
+                                <button wire:click="deleteAttachment({{ $attach->id }})" class="text-red-500 text-xs">حذف</button>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-gray-500 italic">هیچ فایلی برای این تسک پیوست نشده است.</p>
+                    @endforelse
+                </div>
+
+                {{-- بخش آپلود جدید برای گیرنده یا فرستنده در همان لحظه مشاهده --}}
+            <div class="mt-3 p-3 bg-white rounded border border-dashed border-orange-300">
+    <label class="block text-[11px] font-bold text-gray-600 mb-1">افزودن پیوست جدید:</label>
+    <div class="flex items-center gap-2">
+        {{-- ۱. کاربر ابتدا از اینجا فایل را انتخاب می‌کند --}}
+        <input type="file" wire:model="files" multiple class="text-xs">
+        
+        {{-- ۲. بعد از انتخاب، این دکمه فایل‌های انتخاب شده را ذخیره می‌کند --}}
+        <button wire:click="uploadMoreFiles({{ $task->id }})" 
+                wire:loading.attr="disabled"
+                @if(empty($files)) disabled @endif {{-- اگر فایلی انتخاب نشده دکمه غیرفعال باشد --}}
+                class="bg-orange-600 text-white px-3 py-1 rounded text-xs shadow hover:bg-orange-700 disabled:opacity-50">
+            تایید و آپلود نهایی
+        </button>
+    </div>
+    
+    {{-- نمایش پیش‌نمایش فایل‌های انتخاب شده قبل از آپلود قطعی --}}
+    @if($files)
+        <div class="text-[10px] text-blue-600 mt-1">
+            {{ count($files) }} فایل آماده آپلود است.
+        </div>
+    @endif
+</div>
+            </div>
+        </td>
+    </tr>
+@endif
                 @endforeach
             </tbody>
         </table>
