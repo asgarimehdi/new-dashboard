@@ -10,6 +10,7 @@
 
     {{-- فرم --}}
    <div class="bg-white p-6 rounded-lg shadow-md mb-6 border-t-4 border-indigo-500">
+
     <h3 class="font-bold text-xl mb-6 text-gray-800 border-b pb-2">
         {{ $taskId ? 'ویرایش تسک: ' . $title : 'ثبت تسک جدید' }}
     </h3>
@@ -66,9 +67,32 @@
                 </p>
             </div>
             <input type="file" wire:model="files" multiple class="opacity-0" />
+            {{-- نمایش خطاهای اعتبار سنجی فایل به صورت آنی --}}
+@error('files.*') 
+    <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> 
+@enderror
+
+{{-- نمایش خطای کلی (مثلاً محدودیت حجم کل) --}}
+@error('files') 
+    <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> 
+@enderror
         </label>
     </div>
-    
+        <div 
+    x-data="{ isUploading: false, progress: 0 }" 
+    x-on:livewire-upload-start="isUploading = true" 
+    x-on:livewire-upload-finish="isUploading = false" 
+    x-on:livewire-upload-error="isUploading = false" 
+    x-on:livewire-upload-progress="progress = $event.detail.progress"
+>
+
+    <div x-show="isUploading" class="mt-2">
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div class="bg-blue-600 h-2.5 rounded-full" x-bind:style="`width: ${progress}%` text-align: center;"></div>
+        </div>
+        <span class="text-[10px] text-blue-600" x-text="`در حال آپلود: ${progress}%` "></span>
+    </div>
+</div>
     {{-- نمایش لیست فایل‌های در انتظار آپلود --}}
     @if($files)
         <div class="mt-2 grid grid-cols-2 gap-2">
@@ -625,7 +649,15 @@
     <div class="flex items-center gap-2">
         {{-- ۱. کاربر ابتدا از اینجا فایل را انتخاب می‌کند --}}
         <input type="file" wire:model="files" multiple class="text-xs">
-        
+        {{-- نمایش خطاهای اعتبار سنجی فایل به صورت آنی --}}
+@error('files.*') 
+    <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> 
+@enderror
+
+{{-- نمایش خطای کلی (مثلاً محدودیت حجم کل) --}}
+@error('files') 
+    <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> 
+@enderror
         {{-- ۲. بعد از انتخاب، این دکمه فایل‌های انتخاب شده را ذخیره می‌کند --}}
         <button wire:click="uploadMoreFiles({{ $task->id }})" 
                 wire:loading.attr="disabled"

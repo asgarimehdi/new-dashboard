@@ -15,6 +15,7 @@ use Morilog\Jalali\Jalalian;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Log;
 #[Layout('components.layouts.app')]
 class TaskIndex extends Component
 {
@@ -55,6 +56,18 @@ public function toggleAttachments($taskId)
     } else {
         $this->opened_attachments_id = $taskId;
         $this->open_activity_task_id = null; // بستن تاریخچه اگر باز بود
+    }
+}
+public function updatedFiles()
+{
+    try {
+        $this->validate([
+            'files.*' => 'nullable|file|max:10240', // حداکثر ۱۰ مگابایت برای هر فایل
+        ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        // اگر فایلی بزرگتر بود، آرایه فایل‌ها را خالی می‌کنیم تا از ارسال فایل خراب جلوگیری شود
+        $this->reset(['files']);
+        throw $e;
     }
 }
 public function uploadMoreFiles($taskId)
@@ -198,6 +211,9 @@ public function edit($id)
 
 public function save()
 {
+    try{
+
+    
     // ۱. ولیدیشن فیلدهای متنی و پایه
     $rules = [
         'title' => 'required|min:3',
@@ -289,6 +305,16 @@ public function save()
     $this->cancelEdit();
     $this->dispatch('reset-datepicker');
     $this->reset(['files']); // حتماً آرایه فایل‌ها را برای تسک بعدی خالی کنید
+} catch (\Illuminate\Validation\ValidationException $e) {
+        // این بخش بسیار مهم است:
+        // اجازه بده خودِ لایووایر خطاهای اعتبارسنجی را مدیریت کند
+        throw $e; 
+
+    } catch (\Exception $e) {
+        // فقط خطاهای غیرمنتظره (مثل قطعی دیتابیس یا مشکل در ذخیره فایل) اینجا مدیریت شوند
+        $this->addError('files', 'خطای فنی: ' . $e->getMessage());
+        Log::error($e->getMessage());
+    }
 }
 
     public function delete($id)
