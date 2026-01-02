@@ -45,6 +45,31 @@ class TaskIndex extends Component
     public $show_trash = false; // وضعیت نمایش زباله‌دان
     public $opened_attachments_id = null; // آیدی تسکی که پیوست‌هایش باز است
     public $files = [];
+    public $commentContent = '';
+    // متد ثبت کامنت
+public function addComment($taskId)
+{
+    $this->validate([
+        'commentContent' => 'required|min:2',
+    ]);
+
+    $task = Task::find($taskId);
+    
+    $task->comments()->create([
+        'user_id' => null, // فعلاً نال
+        'content' => $this->commentContent,
+    ]);
+
+    // ثبت در تاریخچه فعالیت‌ها
+    $task->activities()->create([
+        'user_id' => null,
+        'action' => 'ثبت کامنت',
+        'description' => 'یک کامنت جدید ثبت شد.',
+    ]);
+
+    $this->commentContent = ''; // خالی کردن فیلد بعد از ثبت
+    session()->flash('success', 'نظر شما با موفقیت ثبت شد.');
+}
 public function removeFile($index)
 {
     array_splice($this->files, $index, 1);
@@ -439,6 +464,9 @@ public function render()
         'activities.newStatus',
         'assignments.fromUser',
         'assignments.toUser',
+        'attachments.user', // اضافه کردن این برای لود سریع‌تر فایل‌ها
+        'comments.user',    
+        
     ]);
 
     // ۲. بررسی حالت نمایش زباله‌دان

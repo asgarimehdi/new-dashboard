@@ -594,6 +594,7 @@
                         'status_change' => 'تغییر وضعیت',
                         'آپلود فایل' => '📎 آپلود فایل',
                         'حذف فایل' => '🗑️ حذف فایل',
+                       'ثبت کامنت' => '💬ثبت نظر جدید',
                         default => $activity->action,
                     } }}:
                 </span>
@@ -618,6 +619,45 @@
         </li>
     @endforeach
 </ul>                               </div>
+<div class="mt-8 border-t pt-6">
+    <h3 class="text-sm font-bold text-gray-800 mb-4 flex items-center">
+        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+        نظرات و گفتگو
+    </h3>
+
+    <div class="mb-6">
+        <textarea wire:model="commentContent" 
+                  class="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" 
+                  rows="3" 
+                  placeholder="نظری بنویسید..."></textarea>
+        <div class="flex justify-end mt-2">
+            <button wire:click="addComment({{ $task->id }})" 
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-md text-xs hover:bg-indigo-700 transition">
+                ثبت نظر
+            </button>
+        </div>
+    </div>
+
+    <div class="space-y-4 max-h-60 overflow-y-auto p-2">
+        @forelse($task->comments as $comment)
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 relative">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[11px] font-bold text-indigo-700">
+                        {{ $comment->user?->full_name ?? 'کاربر مهمان' }}
+                    </span>
+                    <span class="text-[10px] text-gray-400 font-mono">
+                        {{ \Hekmatinasser\Verta\Verta::instance($comment->created_at)->format('Y/m/d H:i') }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-700 leading-relaxed">
+                    {{ $comment->content }}
+                </p>
+            </div>
+        @empty
+            <p class="text-center text-gray-400 text-xs italic">هنوز نظری ثبت نشده است.</p>
+        @endforelse
+    </div>
+</div>
                             </td>
                         </tr>
                     @endif
