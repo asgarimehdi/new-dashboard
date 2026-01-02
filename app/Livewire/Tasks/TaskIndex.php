@@ -34,15 +34,26 @@ class TaskIndex extends Component
     public $assign_user_id = null;
     public $priority = 'normal';
     public $due_date;
+    public $filter_status = '';
+    public $filter_priority = '';
+
+// این متد باعث می‌شود وقتی فیلتر تغییر کرد، صفحه‌بندی به صفحه ۱ برگردد
+    public function updatedFilterStatus() { $this->resetPage(); }
+    public function updatedFilterPriority() { $this->resetPage(); }
+   public function resetFilters()
+    {
+    $this->reset(['filter_status', 'filter_priority', 'search']); // اگر می‌خواهید جستجوی متنی هم پاک شود
+    $this->resetPage(); // حتماً به صفحه اول برگردد
+    }
     protected function currentUserId()
-{
+    {
     return \App\Models\User::first()?->id;
-}
-public function updatedTaskView()
-{
+    }
+    public function updatedTaskView()
+    {
     $this->resetPage();
     $this->open_activity_task_id = null;
-}
+    }
 
     protected function rules()
     {
@@ -220,7 +231,7 @@ public function changeStatus($taskId, $newStatusId)
 
     /* ---------- Render ---------- */
 
-   public function render()
+  public function render()
 {
     $query = Task::with([
             'unit',
@@ -237,6 +248,20 @@ public function changeStatus($taskId, $newStatusId)
                   $u->where('name', 'like', '%' . $this->search . '%')
               );
         });
+
+    // --- شروع بخش فیلترهای جدید ---
+    
+    // فیلتر بر اساس وضعیت (اگر انتخاب شده باشد)
+   if (filled($this->filter_status)) {
+    $query->where('task_status_id', $this->filter_status);
+}
+
+    // فیلتر بر اساس اولویت (اگر انتخاب شده باشد)
+    if (filled($this->filter_priority)) {
+    $query->where('priority', $this->filter_priority);
+}
+    
+    // --- پایان بخش فیلترهای جدید ---
 
     $currentUserId = $this->currentUserId();
 
@@ -265,6 +290,7 @@ public function changeStatus($taskId, $newStatusId)
     return view('livewire.tasks.task-index', [
         'tasks' => $tasks,
         'units' => Unit::orderBy('name')->get(),
+        'statuses' => \App\Models\TaskStatus::all(), // این را برای نمایش در دراپ‌داون فیلتر اضافه کردیم
         'assignableUsers' => $assignableUsers,
     ]);
 }

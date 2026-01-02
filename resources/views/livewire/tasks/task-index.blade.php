@@ -198,14 +198,44 @@
 </div>
 
 
-    {{-- سرچ --}}
+
+<div class="flex flex-wrap gap-4 bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+    {{-- فیلتر وضعیت --}}
+    <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-bold text-gray-500 mb-1">وضعیت:</label>
+        <select wire:model.live="filter_status" class="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">همه وضعیت‌ها</option>
+            @foreach($statuses as $status)
+                <option value="{{ $status->id }}">{{ $status->title }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    {{-- فیلتر اولویت --}}
+    <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-bold text-gray-500 mb-1">اولویت:</label>
+        <select wire:model.live="filter_priority" class="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">همه اولویت‌ها</option>
+            <option value="low">کم</option>
+            <option value="normal">معمولی</option>
+            <option value="urgent">فوری</option>
+        </select>
+    </div>
+
+    {{-- دکمه پاکسازی --}}
+    <div class="flex items-end pb-1">
+<button wire:click="resetFilters()" class="text-xs text-red-500 hover:text-red-700 underline transition">
+    حذف فیلترها
+</button>
+    </div>
+        {{-- سرچ --}}
     <input
         type="text"
         wire:model.live.debounce.500ms="search"
         class="w-full border rounded px-3 py-2"
         placeholder="جستجو عنوان یا واحد..."
     >
-
+</div>
     {{-- جدول --}}
   {{-- جدول مدیریت تسک‌ها --}}
 <div class="bg-white rounded shadow overflow-hidden">
