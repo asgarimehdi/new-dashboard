@@ -13,11 +13,13 @@ public function up()
 {
     Schema::create('attachments', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('task_id')->constrained()->onDelete('cascade');
+        $table->foreignId('task_id')->nullable()->constrained()->onDelete('cascade');
         $table->foreignId('user_id')->constrained(); // مشخص می‌کند چه کسی آپلود کرده
         $table->string('file_path');
         $table->string('file_name');
         $table->integer('file_size'); // ذخیره به صورت بایت برای محاسبات دقیق
+    // فیلد تیکت را اضافه می‌کنیم
+        $table->foreignId('ticket_id')->nullable()->constrained()->onDelete('cascade');
         $table->timestamps();
     });
 }
