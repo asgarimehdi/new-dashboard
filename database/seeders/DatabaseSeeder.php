@@ -28,6 +28,8 @@ class DatabaseSeeder extends Seeder
          $this->call(NationalUnitsSeeder::class);
          $this->call(UserSeeder::class);
          $this->call(TaskStatusSeeder::class);
+         $this->call(UnitSeeder::class);
+
 
          
     }
