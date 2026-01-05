@@ -20,6 +20,9 @@ class CitySeeder extends Seeder
             'خرمدره',
             'ماه‌نشان',
             'طارم',
+            'ایجرود',
+            'سلطانیه',
+            'خدابنده'
         ];
 
         foreach ($cities as $city) {
