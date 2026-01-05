@@ -1,5 +1,28 @@
-@import 'tailwindcss';
 
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/fonts/vazir/Vazirmatn-Regular.woff2') format('woff2'),
+         url('/fonts/vazir/Vazirmatn-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/fonts/vazir/Vazirmatn-Bold.woff2') format('woff2'),
+         url('/fonts/vazir/Vazirmatn-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+/* اعمال فونت به کل بدنه سایت */
+@layer base {
+    body {
+        font-family: 'Vazirmatn', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        direction: rtl; /* چون پروژه فارسی است */
+    }
+}
+@import 'tailwindcss';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';

@@ -1,4 +1,4 @@
-<div class="py-10 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen font-[vazir]"
+<div class="py-10 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen "
      x-data="{ 
         isUploading: false, 
         progress: 0, 
