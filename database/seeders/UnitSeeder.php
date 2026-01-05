@@ -33,6 +33,7 @@ class UnitSeeder extends Seeder
         $this->addUnit('کارگزینی ستاد شبکه', 'کارگزینی', $omurOmumi->id, $abhar->id);
         $this->addUnit('خدمات و نقلیه', 'واحد اداری', $omurOmumi->id, $abhar->id);
         $this->addUnit('دبیرخانه', 'واحد اداری', $omurOmumi->id, $abhar->id);
+        $this->addUnit('دفتر فنی', 'واحد اداری', $omurOmumi->id, $abhar->id);
 
         // ۵. زیرمجموعه‌های حوزه مدیریت
         $this->addUnit('دفتر مدیریت', 'واحد اداری', $hazeModiriat->id, $abhar->id);
