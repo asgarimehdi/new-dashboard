@@ -30,6 +30,7 @@ return new class extends Migration
          ->nullable();
         
 
+
     $table->boolean('is_active')->default(true);
 
     $table->timestamps();
