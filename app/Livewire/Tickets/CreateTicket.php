@@ -11,10 +11,23 @@ use Livewire\Attributes\Layout;
 class CreateTicket extends Component
 {
     use WithFileUploads;
-
-    public $unit_id, $subject, $content, $priority = 'normal';
+    public $search = '';
+    public $unit_id = null;
+    public $showDropdown = false;
+    public $subject, $content, $priority = 'normal';
     public $files = []; 
+public function selectUnit($id, $name)
+{
+    $this->unit_id = $id;
+    $this->search = $name;
+    $this->showDropdown = false;
+}
 
+public function updatedSearch()
+{
+    $this->unit_id = null; // اگر کاربر دوباره تایپ کرد، انتخاب قبلی باطل شود
+    $this->showDropdown = true;
+}
     // این متد بلافاصله بعد از انتخاب فایل توسط کاربر اجرا می‌شود
     public function updatedFiles()
     {
@@ -107,11 +120,15 @@ class CreateTicket extends Component
 
     public function render()
     {
-        return view('livewire.tickets.create-ticket', [
-            'units' => Unit::where('is_active', true)
-            ->where('can_receive_tickets', true)
-             ->orderBy('name')
-             ->get()
-        ]);
+       $units = [];
+    if (strlen($this->search) >= 2) {
+        $units = Unit::where('can_receive_tickets', true)
+            ->where('is_active', true)
+            ->where('name', 'like', '%' . $this->search . '%')
+            ->take(10) // محدود کردن برای سرعت بیشتر
+            ->get();
+    }
+
+    return view('livewire.tickets.create-ticket', compact('units'));
     }
 }

@@ -50,16 +50,34 @@
             <form wire:submit.prevent="saveTicket" class="p-6 md:p-8 space-y-5">
                 {{-- ردیف اول: واحد و اولویت --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
-                    <div class="space-y-1">
-                        <label class="block text-xs font-bold text-indigo-900 mr-1">واحد مقصد:</label>
-                        <select wire:model="unit_id" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus:border-indigo-500 outline-none transition-all text-sm">
-                            <option value="">انتخاب کنید...</option>
-                            @foreach($units as $unit)
-                                <option value="{{ $unit->id }}">{{ $unit->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('unit_id') <span class="text-red-500 text-[10px] font-bold">{{ $message }}</span> @enderror
-                    </div>
+                    <div class="relative">
+    <label class="block text-sm font-bold text-gray-700 mb-1">واحد گیرنده</label>
+    
+    <div class="relative">
+        <input type="text" 
+               wire:model.live.debounce.300ms="search"
+               placeholder="بخشی از نام واحد را تایپ کنید..."
+               class="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm">
+        
+        @if($showDropdown && !empty($units))
+            <div class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                @foreach($units as $unit)
+                    <button type="button" 
+                            wire:click="selectUnit({{ $unit->id }}, '{{ $unit->name }}')"
+                            class="w-full text-right px-4 py-2 text-sm hover:bg-blue-50 transition-colors border-b last:border-0">
+                        {{ $unit->name }}
+                    </button>
+                @endforeach
+            </div>
+        @elseif($showDropdown && strlen($search) >= 2)
+            <div class="absolute z-50 w-full mt-1 bg-white p-3 text-sm text-gray-500 border rounded-md shadow-lg">
+                واحدی با این نام پیدا نشد.
+            </div>
+        @endif
+    </div>
+    
+    @error('unit_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+</div>
 
                     <div class="space-y-1">
                         <label class="block text-xs font-bold text-indigo-900 mr-1">میزان فوریت:</label>
