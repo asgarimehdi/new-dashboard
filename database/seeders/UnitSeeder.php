@@ -114,7 +114,8 @@ class UnitSeeder extends Seeder
             'unit_type_id' => $type->id,
             'parent_id' => $parentId,
             'city_id' => $cityId,
-            'is_active' => 1
+            'is_active' => 1,
+            'can_receive_tickets' => false
         ]);
 
         $this->nationalCodeBase++;

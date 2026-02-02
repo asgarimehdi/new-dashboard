@@ -32,7 +32,8 @@ return new class extends Migration
 
 
     $table->boolean('is_active')->default(true);
-
+// فیلد جدید برای قابلیت دریافت تیکت
+    $table->boolean('can_receive_tickets')->default(false);
     $table->timestamps();
 
     $table->index(['unit_type_id', 'parent_id']);

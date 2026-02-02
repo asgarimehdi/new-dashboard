@@ -108,7 +108,10 @@ class CreateTicket extends Component
     public function render()
     {
         return view('livewire.tickets.create-ticket', [
-            'units' => Unit::where('is_active', true)->get()
+            'units' => Unit::where('is_active', true)
+            ->where('can_receive_tickets', true)
+             ->orderBy('name')
+             ->get()
         ]);
     }
 }
