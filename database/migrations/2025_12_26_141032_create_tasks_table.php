@@ -13,7 +13,8 @@ return new class extends Migration
     {
        Schema::create('tasks', function (Blueprint $table) {
     $table->id();
-
+// اضافه کردن رابط به تیکت
+    $table->foreignId('ticket_id')->nullable()->constrained('tickets')->nullOnDelete();
     $table->string('title');
     $table->text('description')->nullable();
 

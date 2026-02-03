@@ -16,7 +16,8 @@ class Task extends Model
         'task_status_id',
         'priority', 
         'due_date', 
-        'attachment_path'
+        'attachment_path',
+        'ticket_id'
     ];
     use SoftDeletes; 
 

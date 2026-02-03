@@ -19,8 +19,8 @@ return new class extends Migration
     $table->string('subject'); // موضوع درخواست
     $table->text('content'); // متن اصلی درخواست
     $table->enum('priority', ['low', 'normal', 'urgent'])->default('normal');
-    $table->enum('status', ['open', 'pending', 'answered', 'converted_to_task', 'closed'])->default('open');
-    $table->foreignId('task_id')->nullable()->constrained()->onDelete('set null'); // ارتباط با تسک (اگر تبدیل شد)
+    $table->enum('status', ['open','processing','rejected' ,'pending', 'answered', 'converted_to_task', 'closed'])->default('open');
+   // $table->foreignId('task_id')->nullable()->constrained()->onDelete('set null'); // ارتباط با تسک (اگر تبدیل شد)
     $table->timestamps();
 });
     }

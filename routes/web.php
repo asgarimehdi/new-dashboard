@@ -9,8 +9,12 @@ use App\Livewire\Units\UnitTree;
 use App\Livewire\Users\UserIndex;
 use App\Livewire\Tasks\TaskIndex;
 use App\Livewire\Tickets\CreateTicket;
+use App\Livewire\Tickets\InboxTickets;
+
+Route::get('/inbox-tickets', InboxTickets::class)->name('tickets.inbox');
 
 Route::get('/tickets/new', CreateTicket::class)->name('tickets.create');
+
 Route::get('/tasks', TaskIndex::class);
 
 Route::get('/users', UserIndex::class);
