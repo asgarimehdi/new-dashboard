@@ -10,8 +10,10 @@
                 <thead class="bg-gray-50 text-gray-500 text-sm">
                     <tr>
                         <th class="p-4">کد / فرستنده</th>
+                        <th class="p-4"> اولویت </th>
                         <th class="p-4">موضوع و محتوا</th>
                         <th class="p-4">زمان ثبت</th>
+                        <th class="p-4"> جزئیات</th>
                         <th class="p-4 text-left">عملیات</th>
                     </tr>
                 </thead>
@@ -22,12 +24,34 @@
                                 <span class="font-mono text-indigo-600 block text-xs">#{{ $ticket->ticket_code }}</span>
                                 <span class="text-sm font-bold text-gray-700">{{ $ticket->creator?->name ?? 'کاربر سیستم' }}</span>
                             </td>
-                            <td class="p-4 cursor-pointer hover:bg-indigo-50/30 transition" wire:click="showTicket({{ $ticket->id }})">
+                            <td class="p-4 text-center">
+        @php
+            $priorityColors = [
+                'urgent' => 'bg-red-100 text-red-700 border-red-200',
+                'normal' => 'bg-blue-100 text-blue-700 border-blue-200',
+                'low'    => 'bg-gray-100 text-gray-700 border-gray-200',
+            ];
+            $priorityLabels = ['urgent' => 'فوری', 'normal' => 'معمولی', 'low' => 'کم‌اهمیت'];
+        @endphp
+        <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $priorityColors[$ticket->priority] ?? $priorityColors['low'] }}">
+            {{ $priorityLabels[$ticket->priority] ?? 'نامشخص' }}
+        </span>
+    </td>
+                            <td class="p-4  hover:bg-indigo-50/30 transition">
     <div class="text-sm font-bold text-gray-800">{{ $ticket->subject }}</div>
     <div class="text-xs text-gray-400 mt-1 line-clamp-1">{{ Str::limit($ticket->content, 50) }}</div>
 </td>
                             <td class="p-4 text-xs text-gray-500">{{ jdate($ticket->created_at)->ago() }}</td>
+                            <td>
+                                <button wire:click="showTicket({{ $ticket->id }})" class="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="مشاهده جزئیات">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="Path.trunc(15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            </button>
+        </td>
                             <td class="p-4 text-left flex items-center justify-end space-x-reverse space-x-2">
+
     <select wire:model="selectedUnit.{{ $ticket->id }}" 
         class="text-xs border-gray-200 rounded-lg p-1.5 bg-gray-50 focus:bg-white focus:ring-1 focus:ring-indigo-500 transition w-40">
     <option value="">ارجاع به واحد دیگر...</option>
@@ -86,37 +110,96 @@
             </div>
 
             @if($showingTicket->attachments->count() > 0)
-            <div>
-                <h4 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                    فایل‌های پیوست
-                </h4>
-                <div class="grid grid-cols-2 gap-2">
-                    @foreach($showingTicket->attachments as $file)
-                    <a href="{{ asset('storage/'.$file->path) }}" target="_blank" class="flex items-center p-2 border rounded-lg hover:bg-gray-50 transition">
-                        <span class="text-xs text-blue-600 truncate">{{ $file->name }}</span>
-                    </a>
-                    @endforeach
+           <div class="mt-6">
+    <h4 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+        مستندات و پیوست‌ها ({{ $showingTicket->attachments->count() }})
+    </h4>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        @forelse($showingTicket->attachments as $file)
+            @php
+                $extension = pathinfo($file->path, PATHINFO_EXTENSION);
+                $isImage = in_array(strtolower($extension), ['jpg','jpeg','png','gif']);
+            @endphp
+            
+            <div class="group relative flex items-center p-3 border border-gray-100 rounded-xl hover:border-indigo-200 hover:bg-indigo-50/30 transition shadow-sm">
+                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg {{ $isImage ? 'bg-orange-50' : 'bg-blue-50' }}">
+                    @if($isImage)
+                        <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    @else
+                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    @endif
                 </div>
+                
+                <div class="mr-3 flex-1 min-w-0">
+                    <p class="text-xs font-medium text-gray-700 truncate" title="{{ $file->name }}">
+                        {{ $file->name }}
+                    </p>
+                    <p class="text-[10px] text-gray-400 uppercase">{{ $extension }}</p>
+                </div>
+
+                <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 bg-white shadow-sm border rounded-md text-indigo-600 hover:bg-indigo-600 hover:text-white">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                </a>
+           
             </div>
+        @empty
+            <div class="col-span-2 text-center py-4 bg-gray-50 rounded-xl text-gray-400 text-xs border border-dashed">
+                پیوستی برای این تیکت ثبت نشده است.
+            </div>
+        @endforelse
+    </div>
+</div>
             @endif
 
-            <div>
-                <h4 class="text-sm font-bold text-gray-800 mb-3">تاریخچه فعالیت‌ها:</h4>
-                <div class="border-r-2 border-gray-100 mr-2 space-y-4">
-                    @foreach($showingTicket->activities as $activity)
-                    <div class="relative pr-6">
-                        <div class="absolute right-[-9px] top-1 w-4 h-4 rounded-full bg-white border-2 border-indigo-500"></div>
-                        <div class="text-xs font-bold text-gray-700">{{ $activity->action_name ?? $activity->action }}</div>
-                        <div class="text-[10px] text-gray-400 mt-1">{{ $activity->description }} - {{ jdate($activity->created_at)->ago() }}</div>
-                    </div>
-                    @endforeach
-                </div>
+           <div class="relative space-y-4 before:absolute before:right-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
+    
+    {{-- ۱. نمایش فعالیت‌های ثبت شده در دیتابیس --}}
+    @foreach($showingTicket->activities->sortByDesc('created_at') as $activity)
+        <div class="relative pr-8">
+            {{-- انتخاب آیکون و رنگ بر اساس نوع اکشن --}}
+            @php
+                $config = match($activity->action) {
+                    'forwarded' => ['icon' => '↪️', 'color' => 'border-blue-500', 'bg' => 'bg-blue-50'],
+                    'rejected'  => ['icon' => '❌', 'color' => 'border-red-500', 'bg' => 'bg-red-50'],
+                    'completed' => ['icon' => '✅', 'color' => 'border-green-500', 'bg' => 'bg-green-50'],
+                    default     => ['icon' => '📝', 'color' => 'border-gray-400', 'bg' => 'bg-gray-50']
+                };
+            @endphp
+
+            <div class="absolute right-0 top-1 w-5 h-5 rounded-full bg-white border-2 {{ $config['color'] }} flex items-center justify-center z-10 text-[10px]">
+                {{ $config['icon'] }}
             </div>
+            
+            <div class="{{ $config['bg'] }} p-3 rounded-xl border border-gray-100">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-bold text-gray-800">{{ $activity->user->name ?? 'نامشخص' }}</span>
+                    <span class="text-[10px] text-gray-400" dir="ltr">{{ jdate($activity->created_at)->format('H:i - Y/m/d') }}</span>
+                </div>
+                <p class="text-xs text-gray-600 leading-5">{{ $activity->description }}</p>
+            </div>
+        </div>
+    @endforeach
+
+    {{-- ۲. نمایش مجازی "ثبت اولیه" (چون در دیتابیس نیست، از دیتای خود تیکت استفاده می‌کنیم) --}}
+    <div class="relative pr-8">
+        <div class="absolute right-0 top-1 w-5 h-5 rounded-full bg-white border-2 border-indigo-500 flex items-center justify-center z-10 text-[10px]">
+            ✨
+        </div>
+        <div class="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-xs font-bold text-indigo-900">{{ $showingTicket->user->name }}</span>
+                <span class="text-[10px] text-indigo-400" dir="ltr">{{ jdate($showingTicket->created_at)->format('H:i - Y/m/d') }}</span>
+            </div>
+            <p class="text-xs text-indigo-700 font-medium">ثبت اولیه تیکت در سیستم</p>
+        </div>
+    </div>
+</div>
         </div>
 
         <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
-            <button wire:click="acceptTicket({{ $showingTicket->id }})" class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold">تایید و شروع کار</button>
+            <!-- <button wire:click="acceptTicket({{ $showingTicket->id }})" class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold">تایید و شروع کار</button> -->
             <button wire:click="closeDetail" class="bg-white border text-gray-600 px-4 py-2 rounded-xl text-sm">بستن</button>
         </div>
     </div>
