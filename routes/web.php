@@ -11,10 +11,13 @@ use App\Livewire\Tasks\TaskIndex;
 use App\Livewire\Tickets\CreateTicket;
 use App\Livewire\Tickets\InboxTickets;
 use App\Livewire\Tasks\TaskManagement;
+use App\Livewire\Tickets\TicketInbox;
+
+Route::get('/inbox-tickets', TicketInbox::class)->name('tickets.inbox');
 
 Route::get('/tasks', TaskManagement::class)->name('tasks.index');
 
-Route::get('/inbox-tickets', InboxTickets::class)->name('tickets.inbox');
+//Route::get('/inbox-tickets', InboxTickets::class)->name('tickets.inbox');
 
 Route::get('/tickets/new', CreateTicket::class)->name('tickets.create');
 
