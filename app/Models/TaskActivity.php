@@ -6,14 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class TaskActivity extends Model
 {
-    protected $fillable = [
-        'task_id',
-        'user_id',
-        'action',
-        'description',
-        'old_status_id',
-        'new_status_id',
-    ];
+  protected $fillable = [
+    'ticket_id', 
+    'user_id',
+    'action',
+    'description',
+    'old_status_id',
+    'new_status_id',
+    'is_internal'
+];
 
     public function task()
     {

@@ -307,6 +307,7 @@
                         
                         {{-- عنوان و نشان اولویت --}}
                         <td class="p-3">
+                            
                             <div class="font-bold text-gray-800">{{ $task->title }}</div>
                             <div class="mt-1">
                                 @php
@@ -656,6 +657,7 @@
     @endif
 </div>
             </div>
+            
         </td>
     </tr>
 @endif

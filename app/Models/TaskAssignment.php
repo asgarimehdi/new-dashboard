@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class TaskAssignment extends Model
 {
     protected $fillable = [
-        'task_id',
-        'from_user_id',
-        'to_user_id',
-        'note',
-    ];
+    'ticket_id',
+    'from_user_id',
+    'to_user_id',
+    'status',
+    'description'
+];
 
     public function task()
     {

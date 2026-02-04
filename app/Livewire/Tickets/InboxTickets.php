@@ -26,12 +26,7 @@ class InboxTickets extends Component
     $this->dispatch('open-modal-assign'); // ارسال سیگنال باز شدن مدال
 }
 
-// ۱. متد مخصوص قبول تیکت (ارجاع به خود)
-public function acceptTicket($ticketId)
-{
-    $this->selectedTicketId = $ticketId;
-    $this->convertAndAssign(1); // ارجاع به مدیر (آیدی 1)
-}
+
 
 // ۲. متد مخصوص ارجاع به دیگران (توسط مدال صدا زده می‌شود)
 public function assignToUser($userId)
@@ -81,13 +76,64 @@ private function convertAndAssign($toUserId)
     $this->dispatch('close-modal'); // بستن مدال پس از موفقیت
     session()->flash('success', 'عملیات با موفقیت انجام شد.');
 }
-    // افزودن متد رد کردن تیکت
-public function rejectTicket($ticketId)
+public function createDirectTask()
 {
-    Ticket::findOrFail($ticketId)->update(['status' => 'rejected']);
+    $task = Ticket::create([
+        'subject' => $this->title,
+        'content' => $this->description,
+        'unit_id' => $this->unit_id,
+        'priority' => $this->priority,
+        'is_task' => true, // مستقیم تسک می‌شود
+        'status' => 'processing',
+        'task_status_id' => 1,
+        'created_by' => auth()->id(),
+    ]);
+
+    $task->logActivity('تسک مستقیماً توسط مدیر ایجاد و ارجاع شد.', 'assignment');
+}
+    // افزودن متد رد کردن تیکت
+public function rejectTicket($id)
+{
+    $ticket = Ticket::findOrFail($id);
+
+    DB::transaction(function () use ($ticket) {
+        $ticket->update(['status' => 'rejected']);
+
+        $ticket->logActivity(
+            description: 'درخواست رد شد.',
+            action: 'reject'
+        );
+    });
+
     session()->flash('success', 'تیکت رد شد.');
 }
+public function acceptTicket($id)
+{
+    $ticket = Ticket::findOrFail($id);
+    $currentUserId = auth()->id() ?? 1; // اگر کاربر لاگین نبود، آیدی ۱ را در نظر بگیر
 
+    DB::transaction(function () use ($ticket, $currentUserId) {
+        $ticket->update([
+            'is_task' => true,
+            'status' => 'processing',
+            'task_status_id' => 1,
+            'accepted_at' => now(),
+        ]);
+
+        $ticket->logActivity(
+            description: 'تیکت تایید شد و به لیست وظایف اجرایی انتقال یافت.',
+            action: 'converted_to_task'
+        );
+
+        $ticket->assignments()->create([
+            'from_user_id' => $currentUserId,
+            'to_user_id' => $currentUserId,
+            'status' => 'pending'
+        ]);
+    });
+
+    $this->dispatch('swal', title: 'تیکت به تسک تبدیل شد'); 
+}
     public function render()
     {
         $tickets = Ticket::with('attachments') // لود کردن پیوست‌ها
