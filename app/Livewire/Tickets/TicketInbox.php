@@ -108,17 +108,13 @@ public function setForward($unitId, $ticketId)
             $ticket->update([
                 'is_task' => true,
                 'status' => 'processing',
-                'task_status_id' => 1, // وضعیت شروع در جدول task_statuses
+               
                 'accepted_at' => now(),
             ]);
 
             $ticket->logActivity('تیکت تایید شد و به فاز اجرایی وارد شد.', 'converted_to_task');
 
-            $ticket->assignments()->create([
-                'from_user_id' => $currentUserId,
-                'to_user_id' => $currentUserId,
-                'status' => 'pending'
-            ]);
+           
         });
 
         session()->flash('success', 'تیکت تایید شد و به لیست تسک‌ها منتقل شد.');

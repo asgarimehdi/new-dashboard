@@ -9,7 +9,7 @@ class Ticket extends Model
 {
     protected $fillable = [
         'ticket_code', 'user_id', 'unit_id', 'subject', 
-        'content', 'priority', 'status', 'task_id','is_task','task_status_id',
+        'content', 'priority', 'status', 'task_id','is_task',
     'accepted_at',
     'completed_at',
     ];
@@ -46,11 +46,7 @@ public function activities()
     return $this->hasMany(TaskActivity::class, 'ticket_id');
 }
 
-// رابطه با ارجاع‌ها (Assignments)
-public function assignments()
-{
-    return $this->hasMany(TaskAssignment::class, 'ticket_id');
-}
+
 
 // متد کمکی برای ثبت فعالیت (اگر قبلاً اضافه نکردید)
 public function logActivity($description, $action = 'comment', $newStatus = null, $isInternal = false)
@@ -59,16 +55,12 @@ public function logActivity($description, $action = 'comment', $newStatus = null
         'user_id' => auth()->id() ?? 1,
         'action' => $action,
         'description' => $description,
-        'old_status_id' => $this->task_status_id,
-        'new_status_id' => $newStatus,
+       
         'is_internal' => $isInternal,
     ]);
 }
 // اضافه کردن این متد به مدل Ticket
-public function taskStatus()
-{
-    return $this->belongsTo(TaskStatus::class, 'task_status_id');
-}
+
 
 // اگر رابطه‌ای برای سازنده تیکت ندارید، این را هم اضافه کنید
 public function creator()

@@ -7,7 +7,7 @@ use App\Models\Unit;
 use App\Models\UnitType;
 use App\Models\City;
 use App\Models\User;
-
+use Illuminate\Support\Facades\DB;
 class UnitSeeder extends Seeder
 {
     private $nationalCodeBase = 4400000000;
@@ -129,5 +129,7 @@ class UnitSeeder extends Seeder
             ]
         );
         return $unit;
+          
     }
+ 
 }

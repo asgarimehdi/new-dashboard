@@ -11,33 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('task_activities', function (Blueprint $table) {
+       Schema::create('task_activities', function (Blueprint $table) {
     $table->id();
-
-    $table->foreignId('task_id')
-        ->constrained()
-        ->cascadeOnDelete();
-
-    $table->foreignId('user_id')
-        ->nullable()
-        ->constrained('users')
-        ->nullOnDelete();
-
-    $table->string('action'); 
-    // assign | status_change | comment | return
-
+    $table->foreignId('ticket_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('user_id')->constrained(); // انجام دهنده عملیات
+    
+    $table->string('action'); // created, forwarded, rejected, finished
     $table->text('description')->nullable();
 
-    $table->foreignId('old_status_id')
-        ->nullable()
-        ->constrained('task_statuses')
-        ->nullOnDelete();
+    // ارجاع به کجا یا چه کسی؟
+    $table->foreignId('to_unit_id')->nullable()->constrained('units');
+    $table->foreignId('to_user_id')->nullable()->constrained('users');
 
-    $table->foreignId('new_status_id')
-        ->nullable()
-        ->constrained('task_statuses')
-        ->nullOnDelete();
-
+    $table->boolean('is_internal')->default(false);
     $table->timestamps();
 });
 

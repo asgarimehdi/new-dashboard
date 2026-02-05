@@ -13,14 +13,20 @@ return new class extends Migration
     {
        Schema::create('tickets', function (Blueprint $table) {
     $table->id();
-    $table->string('ticket_code')->unique(); // کد پیگیری مثل T-1024
-    $table->foreignId('user_id')->constrained(); // ثبت کننده تیکت (مبدأ)
-    $table->foreignId('unit_id')->constrained(); // واحد مقصد (تاسیسات، IT و...)
-    $table->string('subject'); // موضوع درخواست
-    $table->text('content'); // متن اصلی درخواست
+    $table->string('ticket_code')->unique();
+    $table->foreignId('user_id')->constrained(); // ایجاد کننده
+    $table->foreignId('unit_id')->constrained(); // واحد مقصد اولیه
+    $table->string('subject');
+    $table->text('content');
     $table->enum('priority', ['low', 'normal', 'urgent'])->default('normal');
-    $table->enum('status', ['open','processing','rejected' ,'pending', 'answered', 'converted_to_task', 'closed'])->default('open');
-   // $table->foreignId('task_id')->nullable()->constrained()->onDelete('set null'); // ارتباط با تسک (اگر تبدیل شد)
+    
+    // وضعیت فعلی (برای سرعت در نمایش لیست‌ها)
+    $table->string('status')->default('created'); 
+    
+    $table->boolean('is_task')->default(false); // تفکیک تیکت معمولی از تسک عملیاتی
+    
+    $table->timestamp('accepted_at')->nullable();
+    $table->timestamp('completed_at')->nullable();
     $table->timestamps();
 });
     }
