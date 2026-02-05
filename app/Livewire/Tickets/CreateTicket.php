@@ -74,50 +74,51 @@ public function updatedSearch()
         }
     }
 
-    public function saveTicket()
-    {
-        // اعتبارسنجی نهایی تمام فیلدها
-        $validatedData = $this->validate([
-            'unit_id' => 'required|exists:units,id',
-            'subject' => 'required|min:5|max:255',
-            'content' => 'required|min:10',
-            'priority' => 'required|in:low,normal,urgent',
-            'files' => 'nullable|array|max:5',
-        ]);
+   public function saveTicket()
+{
+    $this->validate([
+        'unit_id' => 'required',
+        'subject' => 'required|min:5',
+        'content' => 'required|min:10',
+        'files.*' => 'nullable|max:10240',
+    ]);
 
-        $ticketCode = 'TIC-' . now()->format('Ymd') . '-' . rand(1000, 9999);
+    // ۱. ایجاد تیکت
+    $ticket = Ticket::create([
+        'ticket_code' => 'TK-' . strtoupper(uniqid()),
+        'user_id' => auth()->id() ?? 1,
+        'unit_id' => $this->unit_id,
+        'subject' => $this->subject,
+        'content' => $this->content,
+        'priority' => $this->priority,
+        'status' => 'open', // وضعیت اولیه
+        'is_task' => false,
+    ]);
 
-        // استفاده از Transaction برای اطمینان از صحت ثبت تیکت و فایل‌ها با هم
-        \DB::transaction(function () use ($ticketCode) {
-            $ticket = Ticket::create([
-                'ticket_code' => $ticketCode,
-                'user_id'     => auth()->id() ?? 1,
-                'unit_id'     => $this->unit_id,
-                'subject'     => $this->subject,
-                'content'     => $this->content,
-                'priority'    => $this->priority,
-                'status'      => 'open',
+    // ۲. ثبت اولین فعالیت (تایم‌لاین) در جدول task_activities
+    $ticket->activities()->create([
+        'user_id' => auth()->id() ?? 1,
+        'action' => 'created',
+        'description' => 'تیکت توسط کاربر ایجاد و به واحد مقصد ارسال شد.',
+        'new_status' => 'open',
+    ]);
+
+    // ۳. ذخیره فایل‌ها (در صورت وجود)
+    if ($this->files) {
+        foreach ($this->files as $file) {
+            $path = $file->store('attachments', 'public');
+            $ticket->attachments()->create([
+                'user_id' => auth()->id() ?? 1,
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+                'file_size' => $file->getSize(),
             ]);
-
-            if ($this->files) {
-                foreach ($this->files as $file) {
-                    $path = $file->store('attachments/tickets', 'public');
-                    $ticket->attachments()->create([
-                        'file_path' => $path,
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_size' => $file->getSize(),
-                        'user_id'   => auth()->id() ?? 1,
-                    ]);
-                }
-            }
-            
-            session()->flash('ticket_code', $ticketCode);
-        });
-
-        session()->flash('success', "درخواست شما با موفقیت در سیستم ثبت شد.");
-        return redirect()->to(route('tickets.create'));
+        }
     }
 
+    session()->flash('message', 'تیکت با موفقیت ثبت شد.');
+    return redirect()->route('tickets.create'); // یا هر مسیری که داری
+}
     public function render()
     {
        $units = [];

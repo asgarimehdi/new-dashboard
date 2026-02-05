@@ -11,7 +11,9 @@ class TaskActivity extends Model
     'user_id',
     'action',
     'description',
-    'is_internal'
+    'is_internal',
+    'to_unit_id', 
+    'to_user_id'
 ];
 
    
