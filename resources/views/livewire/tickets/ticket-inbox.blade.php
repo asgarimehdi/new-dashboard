@@ -156,45 +156,31 @@
            <div class="relative space-y-4 before:absolute before:right-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
     
     {{-- ۱. نمایش فعالیت‌های ثبت شده در دیتابیس --}}
-    @foreach($showingTicket->activities->sortByDesc('created_at') as $activity)
-        <div class="relative pr-8">
-            {{-- انتخاب آیکون و رنگ بر اساس نوع اکشن --}}
-            @php
-                $config = match($activity->action) {
-                    'forwarded' => ['icon' => '↪️', 'color' => 'border-blue-500', 'bg' => 'bg-blue-50'],
-                    'rejected'  => ['icon' => '❌', 'color' => 'border-red-500', 'bg' => 'bg-red-50'],
-                    'completed' => ['icon' => '✅', 'color' => 'border-green-500', 'bg' => 'bg-green-50'],
-                    default     => ['icon' => '📝', 'color' => 'border-gray-400', 'bg' => 'bg-gray-50']
-                };
-            @endphp
-
-            <div class="absolute right-0 top-1 w-5 h-5 rounded-full bg-white border-2 {{ $config['color'] }} flex items-center justify-center z-10 text-[10px]">
-                {{ $config['icon'] }}
-            </div>
-            
-            <div class="{{ $config['bg'] }} p-3 rounded-xl border border-gray-100">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-xs font-bold text-gray-800">{{ $activity->user->name ?? 'نامشخص' }}</span>
-                    <span class="text-[10px] text-gray-400" dir="ltr">{{ jdate($activity->created_at)->format('H:i - Y/m/d') }}</span>
-                </div>
-                <p class="text-xs text-gray-600 leading-5">{{ $activity->description }}</p>
-            </div>
+ @foreach($showingTicket->activities->sortByDesc('created_at') as $activity)
+    <div class="relative pr-8 mb-4">
+        <div class="absolute right-0 top-1 w-5 h-5 rounded-full bg-white border-2 
+            {{ $activity->action == 'created' ? 'border-green-500' : 'border-blue-500' }} 
+            flex items-center justify-center z-10 text-[10px]">
+            {{ $activity->action == 'created' ? '✨' : '📨' }}
         </div>
-    @endforeach
 
-    {{-- ۲. نمایش مجازی "ثبت اولیه" (چون در دیتابیس نیست، از دیتای خود تیکت استفاده می‌کنیم) --}}
-    <div class="relative pr-8">
-        <div class="absolute right-0 top-1 w-5 h-5 rounded-full bg-white border-2 border-indigo-500 flex items-center justify-center z-10 text-[10px]">
-            ✨
-        </div>
-        <div class="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+        <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
             <div class="flex justify-between items-center mb-1">
-                <span class="text-xs font-bold text-indigo-900">{{ $showingTicket->user->name }}</span>
-                <span class="text-[10px] text-indigo-400" dir="ltr">{{ jdate($showingTicket->created_at)->format('H:i - Y/m/d') }}</span>
+                <span class="text-xs font-bold text-gray-900">{{ $activity->user->name }}</span>
+                <span class="text-[10px] text-gray-400" dir="ltr">
+                    {{ jdate($activity->created_at)->format('H:i - Y/m/d') }}
+                </span>
             </div>
-            <p class="text-xs text-indigo-700 font-medium">ثبت اولیه تیکت در سیستم</p>
+            <p class="text-xs text-gray-600">{{ $activity->description }}</p>
+            
+            @if($activity->to_unit_id)
+                <div class="mt-2 text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded-lg inline-block">
+                    ارجاع به واحد: {{ $activity->toUnit->name ?? 'نامشخص' }}
+                </div>
+            @endif
         </div>
     </div>
+@endforeach
 </div>
         </div>
 
