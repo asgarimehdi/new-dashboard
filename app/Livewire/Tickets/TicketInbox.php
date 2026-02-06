@@ -14,119 +14,118 @@ class TicketInbox extends Component
 {
     use WithPagination;
 
-    public $search = '';
-    
-    // رندر کردن تیکت‌های ورودی که هنوز تایید نشده‌اند
-   public function render()
+    public $search = ''; 
+    public $unitSearch = ''; 
+    public $targetUnitId = null;
+    public $targetUnitName = '';
+    public $forwardNote = '';
+    public $showingTicket = null; // برای کنترل کل مودال
+
+    public function render()
 {
-    // دریافت واحد کاربر فعلی
-    $userUnitId = auth()->user()->unit_id ?? null;
-
-    $query = Ticket::query()
-        ->where('is_task', false)
-        ->where('status', 'open');
-
-    // اگر کاربر عضو واحدی بود، فقط تیکت‌های همان واحد را نشان بده
-    if ($userUnitId) {
-        $query->where('unit_id', $userUnitId);
-    } else {
-        // اگر واحد نداشت (مثلاً مدیر کل بود)، موقتاً همه تیکت‌های باز را نشان بده
-        // یا اگر می‌خواهید هیچ‌چیز نبیند: $query->whereRaw('1 = 0');
+    $units = [];
+    if (strlen($this->unitSearch) > 1) {
+        $units = Unit::where('name', 'like', '%' . $this->unitSearch . '%')
+                    ->where('can_receive_tickets', true)
+                    ->limit(5)->get();
     }
 
-    if ($this->search) {
+    // اصلاح کوئری برای اعمال جستجو
+    $query = Ticket::where('is_task', false)
+                   ->where('status', '!=', 'rejected');
+
+    if (!empty($this->search)) {
         $query->where(function($q) {
             $q->where('subject', 'like', '%' . $this->search . '%')
-              ->orWhere('ticket_code', 'like', '%' . $this->search . '%');
+              ->orWhere('ticket_code', 'like', '%' . $this->search . '%')
+              ->orWhere('content', 'like', '%' . $this->search . '%');
         });
     }
 
     return view('livewire.tickets.ticket-inbox', [
-        'tickets' => $query->with('creator')->latest()->paginate(15)
+        'tickets' => $query->latest()->paginate(15),
+        'units' => $units
     ]);
 }
-public $showingTicket = null; // برای ذخیره تیکت انتخابی جهت نمایش در مودال
 
-public function showTicket($id)
-{
-    // بارگذاری تیکت به همراه فعالیت‌ها و فایل‌ها
-    $this->showingTicket = Ticket::with(['activities.user', 'attachments', 'creator'])->findOrFail($id);
-}
-
-public function closeDetail()
-{
-    $this->showingTicket = null;
-}
-    public $selectedTicketId;
-public $newUnitId;
-
-// متد برای تغییر واحد تیکت
-public $selectedUnit = []; // برای ذخیره واحد انتخاب شده برای هر تیکت
-
-public function forwardTicket($ticketId)
-{
-    // چک کردن اینکه آیا واحدی برای این تیکت خاص انتخاب شده یا نه
-    if (!isset($this->selectedUnit[$ticketId]) || empty($this->selectedUnit[$ticketId])) {
-        $this->dispatch('swal', title: 'لطفاً ابتدا یک واحد را انتخاب کنید', icon: 'error');
-        return;
+    public function showTicket($id)
+    {
+        $this->showingTicket = Ticket::with(['activities.user', 'attachments', 'creator', 'unit'])->findOrFail($id);
     }
 
-    $newUnitId = $this->selectedUnit[$ticketId];
-    $ticket = Ticket::findOrFail($ticketId);
-    
-    $oldUnitName = $ticket->unit->name ?? 'نامشخص';
-    $newUnit = Unit::find($newUnitId);
+    public function closeDetail()
+    {
+        $this->showingTicket = null;
+        $this->reset(['targetUnitId', 'targetUnitName', 'unitSearch', 'forwardNote']);
+    }
 
-    DB::transaction(function () use ($ticket, $newUnitId, $oldUnitName, $newUnit) {
-        $ticket->update(['unit_id' => $newUnitId]);
-        
-        $ticket->logActivity(
-            "تیکت از واحد $oldUnitName به واحد {$newUnit->name} ارجاع داده شد.", 
-            'forwarded'
-        );
-    });
+    public function selectTargetUnit($id, $name)
+    {
+        $this->targetUnitId = $id;
+        $this->targetUnitName = $name;
+        $this->unitSearch = '';
+    }
 
-    $this->dispatch('swal', title: 'با موفقیت به واحد ' . $newUnit->name . ' ارجاع شد', icon: 'success');
-    
-    // پاک کردن انتخاب بعد از انجام عملیات
-    unset($this->selectedUnit[$ticketId]);
-}
-public function setForward($unitId, $ticketId)
-{
-    if(!$unitId) return;
-    $this->newUnitId = $unitId;
-    $this->selectedTicketId = $ticketId;
-    $this->forwardTicket();
-}
-    // متد تایید و تبدیل به تسک (که قبلاً با هم اصلاح کردیم)
+    public function forward()
+    {
+        $this->validate([
+            'targetUnitId' => 'required',
+            'forwardNote' => 'nullable|max:500',
+        ]);
+
+        DB::transaction(function () {
+            $oldUnitName = $this->showingTicket->unit->name;
+            $newUnit = Unit::find($this->targetUnitId);
+
+            $this->showingTicket->update([
+                'unit_id' => $newUnit->id,
+                'status' => 'forwarded'
+            ]);
+
+            $this->showingTicket->activities()->create([
+                'user_id' => 1, // Default user for now
+                'action' => 'forwarded',
+                'description' => "ارجاع از «{$oldUnitName}» به «{$newUnit->name}» - یادداشت: " . ($this->forwardNote ?: 'بدون یادداشت'),
+                'to_unit_id' => $newUnit->id,
+            ]);
+        });
+
+        $this->dispatch('swal', ['title' => 'Success', 'icon' => 'success']);
+        $this->closeDetail();
+    }
+
     public function acceptTicket($id)
     {
         $ticket = Ticket::findOrFail($id);
-        $currentUserId = auth()->id() ?? 1;
-
-        DB::transaction(function () use ($ticket, $currentUserId) {
+        DB::transaction(function () use ($ticket) {
             $ticket->update([
                 'is_task' => true,
                 'status' => 'processing',
-               
                 'accepted_at' => now(),
             ]);
 
-            $ticket->logActivity('تیکت تایید شد و به فاز اجرایی وارد شد.', 'converted_to_task');
-
-           
+            $ticket->activities()->create([
+                'user_id' => 1,
+                'action' => 'accepted',
+                'description' => 'تیکت تایید شد و به فاز اجرایی وارد شد.'
+            ]);
         });
-
-        session()->flash('success', 'تیکت تایید شد و به لیست تسک‌ها منتقل شد.');
+        $this->dispatch('swal', ['title' => 'تایید شد', 'icon' => 'success']);
+        $this->closeDetail();
     }
 
-    // متد رد تیکت
-    public function rejectTicket($id, $reason = 'شرایط لازم را ندارد')
+    public function rejectTicket($id)
     {
         $ticket = Ticket::findOrFail($id);
-        $ticket->update(['status' => 'rejected']);
-        $ticket->logActivity("تیکت رد شد. دلیل: $reason", 'rejected');
-        
-        session()->flash('info', 'تیکت رد شد.');
+        DB::transaction(function () use ($ticket) {
+            $ticket->update(['status' => 'rejected']);
+            $ticket->activities()->create([
+                'user_id' => 1,
+                'action' => 'rejected',
+                'description' => 'تیکت توسط واحد مقصد رد شد.'
+            ]);
+        });
+        $this->dispatch('swal', ['title' => 'تیکت رد شد', 'icon' => 'info']);
+        $this->closeDetail();
     }
 }
