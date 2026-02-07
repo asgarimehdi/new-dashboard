@@ -23,8 +23,8 @@ return new class extends Migration
     // وضعیت فعلی (برای سرعت در نمایش لیست‌ها)
     $table->string('status')->default('created'); 
     
-    $table->boolean('is_task')->default(false); // تفکیک تیکت معمولی از تسک عملیاتی
-    
+    $table->foreignId('current_assignee_id')->nullable()->constrained('users');
+
     $table->timestamp('accepted_at')->nullable();
     $table->timestamp('completed_at')->nullable();
     $table->timestamps();

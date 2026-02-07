@@ -8,7 +8,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\Attributes\Layout;
 
-#[Layout('components.layouts.app')]
+#[Layout('layouts.app')]
 class CreateTicket extends Component
 {
     use WithFileUploads;
@@ -61,29 +61,33 @@ class CreateTicket extends Component
 
         $ticketCode = 'TK-' . strtoupper(substr(uniqid(), -6));
 
+        // ایجاد تیکت بر اساس فیلدهای جدید
         $ticket = Ticket::create([
             'ticket_code' => $ticketCode,
-            'user_id' => auth()->id() ?? 1,
+            'user_id' => auth()->id(), // الزامی بودن کاربر لاگین شده توسط بریز
             'unit_id' => $this->unit_id,
             'subject' => $this->subject,
             'content' => $this->content,
             'priority' => $this->priority,
-            'status' => 'open',
-            'is_task' => false,
+            'status' => 'created', // تغییر از open به created
+            'current_assignee_id' => null, // در ابتدا شخص خاصی مسئول نیست و فقط واحد مشخص است
         ]);
 
+        // ثبت در جدول فعالیت‌ها (بر اساس ساختار دقیق شما)
         $ticket->activities()->create([
-            'user_id' => auth()->id() ?? 1,
+            'user_id' => auth()->id(),
             'action' => 'created',
             'description' => 'تیکت ایجاد شد.',
-            'new_status' => 'open',
+            'to_unit_id' => $this->unit_id,
+            'is_internal' => false,
         ]);
 
+        // ثبت فایل‌ها در جدول پیوست‌ها
         if ($this->files) {
             foreach ($this->files as $file) {
                 $path = $file->store('attachments', 'public');
                 $ticket->attachments()->create([
-                    'user_id' => auth()->id() ?? 1,
+                    'user_id' => auth()->id(),
                     'file_path' => $path,
                     'file_name' => $file->getClientOriginalName(),
                     'file_size' => $file->getSize(),
@@ -91,7 +95,6 @@ class CreateTicket extends Component
             }
         }
 
-        // ذخیره کد پیگیری در سشن برای نمایش پس از ریدایرکت
         session()->flash('success', 'تیکت با موفقیت ثبت شد.');
         session()->flash('ticket_code', $ticketCode);
 
