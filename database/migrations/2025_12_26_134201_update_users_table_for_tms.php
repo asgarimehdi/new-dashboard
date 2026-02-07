@@ -30,7 +30,7 @@ return new class extends Migration
     $table->boolean('is_active')->default(true)->after('unit_id');
 
     // فعلاً رمز عبور nullable
-    $table->string('password')->nullable()->change();
+    // $table->string('password')->nullable()->change();
     $table->dropColumn('name');
      $table->dropUnique(['email']); // حذف unique index
     $table->dropColumn('email');

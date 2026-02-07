@@ -9,11 +9,11 @@
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
 
-        <!-- Email Address -->
+        <!-- national_code Address -->
         <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-input-label for="national_code" :value="__('national_code')" />
+            <x-text-input id="national_code" class="block mt-1 w-full" type="national_code" name="national_code" :value="old('national_code')" required autocomplete="username" />
+            <x-input-error :messages="$errors->get('national_code')" class="mt-2" />
         </div>
 
         <!-- Password -->
