@@ -91,11 +91,11 @@ class TicketInbox extends Component
             ]);
         });
 
-        $this->dispatch('swal', title: 'تیکت با موفقیت ارجاع شد', icon: 'success');
+        $this->dispatch('swal',[ 'title'=> 'تیکت با موفقیت ارجاع شد', 'icon'=> 'success']);
         $this->closeDetail();
 
     } catch (\Exception $e) {
-        $this->dispatch('swal', title: 'خطا در انجام عملیات', icon: 'error');
+        $this->dispatch('swal',[ 'title'=> 'خطا در انجام عملیات', 'icon'=> 'error']);
     }
 }
 
@@ -139,10 +139,12 @@ class TicketInbox extends Component
             ]);
         });
 
-        $this->dispatch('swal', title: 'تیکت با موفقیت رد شد', icon: 'info');
+        $this->dispatch('swal', ['title'=> 'تیکت با موفقیت رد شد', 'icon'=> 'info']);
+        $this->closeDetail();
 
     } catch (\Exception $e) {
-        $this->dispatch('swal', title: 'خطایی رخ داد', icon: 'error');
+        $this->dispatch('swal', ['title'=> 'خطایی رخ داد', 'icon'=> 'error']);
+        $this->closeDetail();
     }
 }
 }
