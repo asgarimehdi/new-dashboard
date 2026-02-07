@@ -6,60 +6,89 @@
         </div>
 
         <div class="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden">
-            <table class="w-full text-right">
-                <thead class="bg-gray-50 text-gray-500 text-sm">
-                    <tr>
-                        <th class="p-4">کد / فرستنده</th>
-                        <th class="p-4">اولویت</th>
-                        <th class="p-4">موضوع و محتوا</th>
-                        <th class="p-4">زمان ثبت</th>
-                        <th class="p-4 text-left">عملیات</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                    @forelse($tickets as $ticket)
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="p-4">
-                                <span class="font-mono text-indigo-600 block text-xs">#{{ $ticket->ticket_code }}</span>
-                                <span class="text-sm font-bold text-gray-700">{{ $ticket->creator?->name ?? 'کاربر سیستم' }}</span>
-                            </td>
-                            <td class="p-4 text-center">
-                                @php
-                                    $priorityColors = [
-                                        'urgent' => 'bg-red-100 text-red-700 border-red-200',
-                                        'normal' => 'bg-blue-100 text-blue-700 border-blue-200',
-                                        'low'    => 'bg-gray-100 text-gray-700 border-gray-200',
-                                    ];
-                                    $priorityLabels = ['urgent' => 'فوری', 'normal' => 'معمولی', 'low' => 'کم‌اهمیت'];
-                                @endphp
-                                <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $priorityColors[$ticket->priority] ?? $priorityColors['low'] }}">
-                                    {{ $priorityLabels[$ticket->priority] ?? 'نامشخص' }}
-                                </span>
-                            </td>
-                            <td class="p-4">
-                                <div class="text-sm font-bold text-gray-800">{{ $ticket->subject }}</div>
-                                <div class="text-xs text-gray-400 mt-1 line-clamp-1">{{ Str::limit($ticket->content, 50) }}</div>
-                            </td>
-                            <td class="p-4 text-xs text-gray-500">{{ jdate($ticket->created_at)->ago() }}</td>
-                            <td class="p-4 text-left flex items-center justify-end gap-2">
-                                <button wire:click="showTicket({{ $ticket->id }})" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100">
-                                    مشاهده و ارجاع
-                                </button>
-                                <button wire:click="acceptTicket({{ $ticket->id }})" class="bg-green-50 text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100">
-                                    تایید
-                                </button>
-                                <button onclick="confirm('رد تیکت؟') || event.stopImmediatePropagation()" wire:click="rejectTicket({{ $ticket->id }})" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">
-                                    رد
-                                </button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="p-12 text-center text-gray-400">تیکت جدیدی برای واحد شما ثبت نشده است.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+<table class="w-full text-right">
+    <thead class="bg-gray-50 text-gray-500 text-sm">
+        <tr>
+            <th class="p-4 text-right">کد / فرستنده</th>
+            <th class="p-4 text-center">اولویت</th>
+            <th class="p-4 text-center">وضعیت</th> <th class="p-4 text-right">موضوع</th>
+            <th class="p-4 text-left">عملیات</th>
+        </tr>
+    </thead>
+   <tbody class="divide-y divide-gray-50">
+    @forelse($tickets as $ticket)
+        <tr class="hover:bg-gray-50 transition">
+            <td class="p-4">
+                <span class="font-mono text-indigo-600 block text-xs">#{{ $ticket->ticket_code }}</span>
+                <span class="text-sm font-bold text-gray-700">{{ $ticket->user?->name ?? 'کاربر سیستم' }}</span>
+            </td>
+
+            {{-- اولویت --}}
+            <td class="p-4 text-center">
+                @php
+                    $priorityColors = [
+                        'urgent' => 'bg-red-100 text-red-700 border-red-200',
+                        'normal' => 'bg-blue-100 text-blue-700 border-blue-200',
+                        'low'    => 'bg-gray-100 text-gray-700 border-gray-200',
+                    ];
+                    $priorityLabels = ['urgent' => 'فوری', 'normal' => 'معمولی', 'low' => 'کم‌اهمیت'];
+                @endphp
+                <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $priorityColors[$ticket->priority] ?? $priorityColors['low'] }}">
+                    {{ $priorityLabels[$ticket->priority] ?? 'نامشخص' }}
+                </span>
+            </td>
+
+            {{-- وضعیت با رنگ‌بندی اختصاصی --}}
+            <td class="p-4 text-center">
+                @php
+                    $statusColors = [
+                        'created'   => 'bg-purple-100 text-purple-700 border-purple-200',
+                        'forwarded' => 'bg-amber-100 text-amber-700 border-amber-200',
+                        'accepted'  => 'bg-blue-100 text-blue-700 border-blue-200',
+                        'closed'    => 'bg-gray-100 text-gray-700 border-gray-200',
+                        'rejected'  => 'bg-red-100 text-red-700 border-red-200',
+                    ];
+                @endphp
+                <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $statusColors[$ticket->status] ?? 'bg-gray-100' }}">
+                    {{ $ticket->status_name }}
+                </span>
+            </td>
+
+            <td class="p-4">
+                <div class="text-sm font-bold text-gray-800">{{ $ticket->subject }}</div>
+            </td>
+
+            <td class="p-4 text-left flex items-center justify-end gap-2">
+                {{-- نمایش نام مسئول (تست رابطه assignee) --}}
+                @if($ticket->current_assignee_id)
+                    <span class="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border">
+                        در کارتابل: <b>{{ $ticket->assignee?->full_name ?? 'خطا در رابطه' }}</b>
+                    </span>
+                @endif
+
+                <button wire:click="showTicket({{ $ticket->id }})" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100">
+                    مشاهده و ارجاع
+                </button>
+
+                {{-- دکمه تایید و رد فقط برای تیکت‌های پذیرفته نشده --}}
+                @if($ticket->status !== 'accepted' && $ticket->status !== 'rejected')
+                    <button wire:click="acceptTicket({{ $ticket->id }})" class="bg-green-50 text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100">
+                        تایید
+                    </button>
+                    
+                    <button onclick="confirm('آیا از رد تیکت اطمینان دارید؟') || event.stopImmediatePropagation()" 
+                            wire:click="rejectTicket({{ $ticket->id }})" 
+                            class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">
+                        رد
+                    </button>
+                @endif
+            </td>
+        </tr>
+    @empty
+        <tr><td colspan="5" class="p-10 text-center text-gray-400">تیکتی یافت نشد.</td></tr>
+    @endforelse
+</tbody>
+</table>
             <div class="p-4">{{ $tickets->links() }}</div>
         </div>
     </div>

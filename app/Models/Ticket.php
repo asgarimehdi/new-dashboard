@@ -9,7 +9,7 @@ class Ticket extends Model
 {
     protected $fillable = [
         'ticket_code', 'user_id', 'unit_id', 'subject', 
-        'content', 'priority', 'status', 'task_id','is_task',
+        'content', 'priority', 'status', 'task_id','current_assignee_id',
     'accepted_at',
     'completed_at',
     ];
@@ -17,9 +17,10 @@ class Ticket extends Model
 public function getStatusNameAttribute()
 {
     return match($this->status) {
-        'open' => 'در انتظار بررسی',
-        'processing' => 'در حال انجام (تسک)',
-        'closed' => 'بسته شده',
+        'created' => 'جدید (واحد)',
+        'forwarded' => 'ارجاع شده',
+        'accepted' => 'در حال پیگیری',
+        'closed' => 'پایان یافته',
         'rejected' => 'رد شده',
         default => 'نامشخص',
     };
@@ -31,9 +32,14 @@ public function getStatusNameAttribute()
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class , 'user_id');
     }
 
+    // رابطه با شخصی که تیکت به او واگذار شده
+public function assignee(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'current_assignee_id');
+}
     public function attachments(): HasMany
     {
         return $this->hasMany(Attachment::class);
@@ -58,13 +64,5 @@ public function logActivity($description, $action = 'comment', $newStatus = null
        
         'is_internal' => $isInternal,
     ]);
-}
-// اضافه کردن این متد به مدل Ticket
-
-
-// اگر رابطه‌ای برای سازنده تیکت ندارید، این را هم اضافه کنید
-public function creator()
-{
-    return $this->belongsTo(User::class, 'created_by');
 }
 }

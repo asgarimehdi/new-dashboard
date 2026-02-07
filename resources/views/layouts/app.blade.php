@@ -41,5 +41,21 @@
     </main>
 
     @livewireScripts
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('livewire:init', () => {
+       Livewire.on('swal', (event) => {
+           const data = event[0]; // در لاووایر ۳ داده‌ها در اولین ایندکس آرایه هستند
+           Swal.fire({
+               title: data.title,
+               icon: data.icon,
+               confirmButtonText: 'تایید',
+               timer: 3000,
+               toast: true,
+               position: 'top-end'
+           });
+       });
+    });
+</script>
 </body>
 </html>
