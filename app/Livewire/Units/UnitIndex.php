@@ -1,30 +1,35 @@
 <?php
 
-namespace App\Livewire\Units;
+namespace App\Livewire\Users;
 
+use App\Models\User;
 use App\Models\Unit;
 use App\Models\City;
 use App\Models\Province;
-use App\Models\UnitType;
-use App\Models\UnitTypeHierarchy;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
 
 #[Layout('components.layouts.app')]
-class UnitIndex extends Component
+class UserIndex extends Component
 {
     use WithPagination;
 
     protected $paginationTheme = 'tailwind';
 
-    public $name;
+    // فیلدهای مدل User
+    public $full_name;
+    public $national_code;
     public $province_id;
     public $city_id;
-    public $unit_type_id;
-    public $parent_id;
+    public $unit_id;
     public $is_active = true;
-    public $unitId;
+    public $userId;
+
+    // فیلد مربوط به Spatie
+    public $selectedRoles = [];
 
     public $search = '';
 
@@ -32,151 +37,105 @@ class UnitIndex extends Component
     protected function rules()
     {
         return [
-            'name' => 'required|string|min:3',
-            'province_id' => 'required|exists:provinces,id',
-            'city_id' => $this->isNationalUnit()
-             ? 'nullable'
-             : 'required|exists:cities,id',
-            'unit_type_id' => 'required|exists:unit_types,id',
-            'parent_id' => 'nullable|exists:units,id',
-            'is_active' => 'boolean',
+            'full_name'     => 'required|string|min:3',
+            'national_code' => 'required|digits:10|unique:users,national_code,' . $this->userId,
+            'province_id'   => 'required|exists:provinces,id',
+            'city_id'       => 'required|exists:cities,id',
+            'unit_id'       => 'required|exists:units,id',
+            'is_active'     => 'boolean',
+            'selectedRoles' => 'required|array|min:1',
         ];
     }
 
-    /* ===================== Core ===================== */
+    /* ===================== Core Actions ===================== */
     public function save()
     {
         $this->validate();
-        $this->validateHierarchy();
 
-        Unit::create($this->unitData());
+        DB::transaction(function () {
+            $user = User::updateOrCreate(
+                ['id' => $this->userId],
+                $this->userData()
+            );
 
+            // همگام‌سازی نقش‌های Spatie
+            $user->syncRoles($this->selectedRoles);
+        });
+
+        $message = $this->userId ? 'اطلاعات کاربر بروزرسانی شد' : 'کاربر با موفقیت تعریف شد';
         $this->resetForm();
-        session()->flash('success', 'واحد با موفقیت ثبت شد');
+        $this->dispatch('swal', ['title' => $message, 'icon' => 'success']);
     }
 
     public function edit($id)
     {
-        $unit = Unit::with('city.province')->findOrFail($id);
+        $this->resetErrorBag();
+        $user = User::with(['roles', 'unit.city.province'])->findOrFail($id);
 
-        $this->unitId = $unit->id;
-        $this->name = $unit->name;
-        $this->province_id = $unit->city->province_id;
-        $this->city_id = $unit->city_id;
-        $this->unit_type_id = $unit->unit_type_id;
-        $this->parent_id = $unit->parent_id;
-        $this->is_active = $unit->is_active;
-    }
-
-    public function update()
-    {
-        $this->validate();
-        $this->validateHierarchy();
-
-        Unit::findOrFail($this->unitId)->update($this->unitData());
-
-        $this->resetForm();
-        session()->flash('success', 'واحد بروزرسانی شد');
+        $this->userId        = $user->id;
+        $this->full_name     = $user->full_name;
+        $this->national_code = $user->national_code;
+        $this->province_id   = $user->province_id ?? ($user->unit?->city?->province_id);
+        $this->city_id       = $user->city_id;
+        $this->unit_id       = $user->unit_id;
+        $this->is_active     = $user->is_active;
+        $this->selectedRoles = $user->roles->pluck('name')->toArray();
     }
 
     public function delete($id)
     {
-        Unit::where('parent_id', $id)->update(['parent_id' => null]);
-        Unit::findOrFail($id)->delete();
-
-        session()->flash('success', 'واحد حذف شد');
-    }
-
-    /* ===================== Hierarchy Logic ===================== */
-
-    private function requiresParent(): bool
-    {
-        $type = UnitType::find($this->unit_type_id);
-
-        return $type && $type->title !== 'وزارت بهداشت';
-    }
-
-    private function allowedParents()
-    {
-        if (!$this->unit_type_id) {
-            return collect();
-        }
-
-        $allowedTypeIds = UnitTypeHierarchy::where(
-            'child_unit_type_id',
-            $this->unit_type_id
-        )->pluck('parent_unit_type_id');
-
-        return Unit::whereIn('unit_type_id', $allowedTypeIds)->get();
-    }
-
-    private function validateHierarchy(): void
-    {
-        if ($this->requiresParent() && !$this->parent_id) {
-            $this->addError('parent_id', 'برای این نوع واحد، انتخاب بالادست الزامی است');
-            abort(422);
-        }
-
-        if ($this->parent_id) {
-            $validParentIds = $this->allowedParents()->pluck('id')->toArray();
-
-            if (!in_array($this->parent_id, $validParentIds)) {
-                $this->addError('parent_id', 'واحد بالادست انتخاب‌شده مجاز نیست');
-                abort(422);
-            }
-        }
+        User::findOrFail($id)->delete();
+        $this->dispatch('swal', ['title' => 'کاربر از سیستم حذف شد', 'icon' => 'warning']);
     }
 
     /* ===================== Helpers ===================== */
-    private function unitData(): array
+    private function userData(): array
     {
-        return [
-            'name' => $this->name,
-            'city_id' => $this->city_id,
-            'unit_type_id' => $this->unit_type_id,
-            'parent_id' => $this->parent_id,
-            'is_active' => $this->is_active,
+        $data = [
+            'full_name'     => $this->full_name,
+            'national_code' => $this->national_code,
+            'province_id'   => $this->province_id,
+            'city_id'       => $this->city_id,
+            'unit_id'       => $this->unit_id,
+            'is_active'     => $this->is_active,
         ];
+
+        // اگر کاربر جدید است، رمز عبور پیش‌فرض کد ملی باشد
+        if (!$this->userId) {
+            $data['password'] = bcrypt($this->national_code);
+        }
+
+        return $data;
     }
 
     public function resetForm()
     {
         $this->reset([
-            'name',
-            'province_id',
-            'city_id',
-            'unit_type_id',
-            'parent_id',
-            'is_active',
-            'unitId',
+            'full_name', 'national_code', 'province_id', 'city_id', 
+            'unit_id', 'is_active', 'userId', 'selectedRoles'
         ]);
-
         $this->is_active = true;
     }
 
+    // وقتی استان تغییر کرد، شهر و واحد باید ریست شوند
+    public function updatedProvinceId()
+    {
+        $this->city_id = null;
+        $this->unit_id = null;
+    }
+
+    public function updatedCityId()
+    {
+        $this->unit_id = null;
+    }
+
     /* ===================== Render ===================== */
-    public function getRequiresParentProperty(): bool
-{
-    return $this->requiresParent();
-}
-
-public function updatedUnitTypeId()
-{
-    // وقتی نوع واحد عوض شد، parent قبلی پاک شود
-    $this->parent_id = null;
-}
-private function isNationalUnit(): bool
-{
-    $type = UnitType::find($this->unit_type_id);
-
-    return $type && $type->title === 'وزارت بهداشت';
-}
-
     public function render()
     {
-        return view('livewire.units.unit-index', [
-            'units' => Unit::with(['type', 'city.province', 'parent'])
-                ->where('name', 'like', '%' . $this->search . '%')
+        return view('livewire.users.user-index', [
+            'users' => User::with(['unit', 'roles', 'province', 'city'])
+                ->where('full_name', 'like', '%' . $this->search . '%')
+                ->orWhere('national_code', 'like', '%' . $this->search . '%')
                 ->latest()
                 ->paginate(10),
 
@@ -186,9 +145,11 @@ private function isNationalUnit(): bool
                 ? City::where('province_id', $this->province_id)->orderBy('name')->get()
                 : [],
 
-            'types' => UnitType::orderBy('title')->get(),
+            'units' => $this->city_id
+                ? Unit::where('city_id', $this->city_id)->orderBy('name')->get()
+                : [],
 
-            'parents' => $this->allowedParents(),
+            'allRoles' => Role::all(),
         ]);
     }
 }
