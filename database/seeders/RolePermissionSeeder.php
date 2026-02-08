@@ -38,7 +38,7 @@ class RolePermissionSeeder extends Seeder
         $managerRole->givePermissionTo('manage-users');
 
         // ۴. اختصاص نقش به کاربر ارشد (اختیاری)
-        // $user = \App\Models\User::find(1);
-        // $user->assignRole('Admin');
+         $user = \App\Models\User::find(1);
+         $user->assignRole('Admin');
     }
 }

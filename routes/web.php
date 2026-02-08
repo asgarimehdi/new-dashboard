@@ -10,6 +10,11 @@ use App\Livewire\Units\UnitTree;
 use App\Livewire\Users\UserIndex;
 use App\Livewire\Tickets\CreateTicket;
 use App\Livewire\Tickets\TicketInbox;
+use App\Livewire\Roles\RoleManager;
+
+Route::get('/role-manager', RoleManager::class)->name('roles.manager');
+
+
 Route::get('/', function () {
     return view('welcome');
 });
