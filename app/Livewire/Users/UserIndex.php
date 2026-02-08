@@ -88,26 +88,38 @@ class UserIndex extends Component
         $this->reset(['userId', 'full_name', 'national_code', 'unit_id', 'selected_unit_name', 'is_active', 'selected_roles', 'unit_search']);
         $this->is_active = true;
     }
+public $filter_role = ''; // برای ذخیره نقش انتخاب شده جهت فیلتر
 
-    public function render()
-    {
-        $units = [];
-        if (strlen($this->unit_search) >= 2) {
-            $units = Unit::where('name', 'like', '%' . $this->unit_search . '%')->take(5)->get();
-            $this->show_dropdown = true;
-        }
+public function updatingFilterRole()
+{
+    $this->resetPage(); // با تغییر فیلتر، صفحه به یک برمی‌گردد
+}
 
-        $users = User::with(['unit', 'roles'])
-            ->where(function ($q) {
-                $q->where('full_name', 'like', '%' . $this->search . '%')
-                  ->orWhere('national_code', 'like', '%' . $this->search . '%');
-            })
-            ->latest()->paginate(10);
-
-        return view('livewire.users.user-index', [
-            'users' => $users,
-            'units' => $units,
-            'roles' => Role::all(),
-        ]);
+public function render()
+{
+    // فیلتر واحدها برای اینپوت هوشمند
+    $units = [];
+    if (strlen($this->unit_search) >= 2) {
+        $units = Unit::where('name', 'like', '%' . $this->unit_search . '%')->take(5)->get();
+        $this->show_dropdown = true;
     }
+
+    // کوئری اصلی کاربران
+    $users = User::with(['unit', 'roles'])
+        ->where(function ($q) {
+            $q->where('full_name', 'like', '%' . $this->search . '%')
+              ->orWhere('national_code', 'like', '%' . $this->search . '%');
+        })
+        // فیلتر بر اساس نقش (در صورت انتخاب)
+        ->when($this->filter_role, function ($q) {
+            $q->role($this->filter_role); 
+        })
+        ->latest()->paginate(10);
+
+    return view('livewire.users.user-index', [
+        'users' => $users,
+        'units' => $units,
+        'roles' => Role::all(),
+    ]);
+}
 }

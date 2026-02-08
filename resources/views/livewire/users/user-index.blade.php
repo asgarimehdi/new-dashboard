@@ -86,9 +86,32 @@
 
     {{-- جدول کاربران --}}
     <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden mt-8">
-        <div class="p-4 bg-gray-50 border-b flex items-center justify-between">
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="جستجوی نام یا کد ملی در کل لیست..." class="w-full max-w-md border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-400">
+       {{-- این بخش جایگزین قسمت بالای جدول (جستجو) می‌شود --}}
+<div class="p-4 bg-gray-50 border-b flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2 w-full max-w-2xl">
+        {{-- اینپوت جستجوی متنی --}}
+        <div class="relative flex-1">
+            <input type="text" wire:model.live.debounce.300ms="search" 
+                   placeholder="جستجوی نام یا کد ملی..." 
+                   class="w-full border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-400">
         </div>
+
+        {{-- فیلتر نقش‌ها --}}
+        <div class="w-48">
+            <select wire:model.live="filter_role" class="w-full border rounded-xl px-3 py-2.5 outline-none bg-white focus:ring-2 focus:ring-blue-400 text-sm">
+                <option value="">همه نقش‌ها</option>
+                @foreach($roles as $role)
+                    <option value="{{ $role->name }}">{{ $role->name }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+
+    {{-- نمایش تعداد نتایج --}}
+    <div class="text-xs text-gray-500 font-bold">
+        تعداد نمایش: {{ $users->total() }} کاربر
+    </div>
+</div>
         <table class="w-full text-right">
             <thead>
                 <tr class="bg-gray-100 text-sm text-gray-600 uppercase">
