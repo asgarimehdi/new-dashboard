@@ -13,6 +13,7 @@ use App\Livewire\Tickets\TicketInbox;
 use App\Livewire\Roles\RoleManager;
 use App\Livewire\UnitTypes\UnitTypeHierarchyManager;
 
+
 Route::get('/role-manager', RoleManager::class)->name('roles.manager');
 
 

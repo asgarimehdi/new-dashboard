@@ -37,7 +37,9 @@
 
     {{-- محتوای صفحه --}}
     <main class="py-6">
+        @include('layouts.navigation') {{-- این خط مسئول نمایش منوی خروج و نام کاربر است --}}
         {{ $slot }}
+
     </main>
 
     @livewireScripts
