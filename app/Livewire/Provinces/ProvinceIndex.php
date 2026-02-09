@@ -1,39 +1,55 @@
 <?php
-
 namespace App\Livewire\Provinces;
 
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Province;
 use Livewire\Attributes\Layout;
+
 #[Layout('components.layouts.app')]
 class ProvinceIndex extends Component
 {
     use WithPagination;
 
-    protected $paginationTheme = 'tailwind';
-
     public $name;
     public $provinceId;
     public $search = '';
 
+    protected $queryString = ['search'];
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
     protected function rules()
     {
         return [
-            'name' => 'required|string|min:3|unique:provinces,name,' . $this->provinceId,
+            'name' => 'required|string|min:2|max:100|unique:provinces,name,' . $this->provinceId,
         ];
     }
+
+    protected $validationAttributes = [
+        'name' => 'نام استان',
+    ];
 
     public function save()
     {
         $this->validate();
 
-        Province::create([
-            'name' => $this->name,
-        ]);
+        Province::updateOrCreate(
+            ['id' => $this->provinceId],
+            ['name' => $this->name]
+        );
 
+        $isEdit = $this->provinceId ? true : false;
         $this->resetForm();
-        session()->flash('success', 'استان با موفقیت ثبت شد');
+        
+        $this->dispatch('swal', [
+            'title' => $isEdit ? 'بروزرسانی موفق' : 'ثبت موفق',
+            'text' => $isEdit ? 'اطلاعات استان با موفقیت ویرایش شد.' : 'استان جدید با موفقیت اضافه شد.',
+            'icon' => 'success'
+        ]);
     }
 
     public function edit($id)
@@ -43,27 +59,25 @@ class ProvinceIndex extends Component
         $this->name = $province->name;
     }
 
-    public function update()
+    public function deleteConfirm($id)
     {
-        $this->validate();
-
-        Province::findOrFail($this->provinceId)->update([
-            'name' => $this->name,
-        ]);
-
-        $this->resetForm();
-        session()->flash('success', 'استان بروزرسانی شد');
+        $this->dispatch('show-delete-confirmation', id: $id);
     }
 
     public function delete($id)
     {
         Province::findOrFail($id)->delete();
-        session()->flash('success', 'استان حذف شد');
+        $this->dispatch('swal', [
+            'title' => 'حذف شد',
+            'text' => 'استان مورد نظر از سیستم حذف گردید.',
+            'icon' => 'error'
+        ]);
     }
 
     public function resetForm()
     {
         $this->reset(['name', 'provinceId']);
+        $this->resetValidation();
     }
 
     public function render()
