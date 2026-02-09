@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Livewire\Cities;
 
 use Livewire\Component;
@@ -8,37 +7,56 @@ use App\Models\City;
 use App\Models\Province;
 use Livewire\Attributes\Layout;
 
-#[Layout('components.layouts.app')]
+#[Layout('layouts.app')]
 class CityIndex extends Component
 {
     use WithPagination;
-
-    protected $paginationTheme = 'tailwind';
 
     public $name;
     public $province_id;
     public $cityId;
     public $search = '';
 
+    protected $queryString = ['search'];
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
     protected function rules()
     {
         return [
-            'name' => 'required|string|min:2',
+            'name' => 'required|string|min:2|max:100',
             'province_id' => 'required|exists:provinces,id',
         ];
     }
+
+    protected $validationAttributes = [
+        'name' => 'نام شهر',
+        'province_id' => 'استان',
+    ];
 
     public function save()
     {
         $this->validate();
 
-        City::create([
-            'name' => $this->name,
-            'province_id' => $this->province_id,
-        ]);
+        City::updateOrCreate(
+            ['id' => $this->cityId],
+            [
+                'name' => $this->name,
+                'province_id' => $this->province_id
+            ]
+        );
 
+        $isEdit = $this->cityId ? true : false;
         $this->resetForm();
-        session()->flash('success', 'شهر ثبت شد');
+        
+        $this->dispatch('swal', [
+            'title' => $isEdit ? 'بروزرسانی موفق' : 'ثبت موفق',
+            'text' => $isEdit ? 'اطلاعات شهر با موفقیت ویرایش شد.' : 'شهر جدید به لیست اضافه شد.',
+            'icon' => 'success'
+        ]);
     }
 
     public function edit($id)
@@ -49,28 +67,25 @@ class CityIndex extends Component
         $this->province_id = $city->province_id;
     }
 
-    public function update()
+    public function deleteConfirm($id)
     {
-        $this->validate();
-
-        City::findOrFail($this->cityId)->update([
-            'name' => $this->name,
-            'province_id' => $this->province_id,
-        ]);
-
-        $this->resetForm();
-        session()->flash('success', 'شهر ویرایش شد');
+        $this->dispatch('show-delete-confirmation', id: $id);
     }
 
     public function delete($id)
     {
         City::findOrFail($id)->delete();
-        session()->flash('success', 'شهر حذف شد');
+        $this->dispatch('swal', [
+            'title' => 'حذف شد',
+            'text' => 'شهر مورد نظر از سیستم حذف گردید.',
+            'icon' => 'warning'
+        ]);
     }
 
     public function resetForm()
     {
         $this->reset(['name', 'province_id', 'cityId']);
+        $this->resetValidation();
     }
 
     public function render()
@@ -81,7 +96,7 @@ class CityIndex extends Component
                 $q->where('name', 'like', '%' . $this->search . '%');
             })
             ->latest()
-            ->paginate(10);
+            ->paginate(12);
 
         return view('livewire.cities.city-index', [
             'cities' => $cities,
