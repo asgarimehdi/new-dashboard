@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Livewire\Units;
 
 use App\Models\Unit;
@@ -8,7 +7,7 @@ use App\Models\UnitType;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
-#[Layout('components.layouts.app')]
+#[Layout('layouts.app')]
 class UnitTree extends Component
 {
     public $province_id = '';
@@ -22,12 +21,10 @@ class UnitTree extends Component
     public function updatedProvinceId()
     {
         $this->buildTree();
-        
     }
 
     private function buildTree(): void
     {
-        // نوع دانشگاه
         $universityType = UnitType::where('title', 'دانشگاه علوم پزشکی')->first();
 
         if (!$universityType) {
@@ -35,54 +32,29 @@ class UnitTree extends Component
             return;
         }
 
-        // واحدهای مجاز بر اساس استان
-        $unitsQuery = Unit::with('type', 'city')
-            ->where(function ($q) use ($universityType) {
-                // همیشه دانشگاه‌ها (ریشه‌های فیلتر)
-                $q->where('unit_type_id', $universityType->id);
-            });
+        // ۱. پیدا کردن ریشه‌ها (دانشگاه‌ها) بر اساس فیلتر استان
+        $rootQuery = Unit::with(['type', 'city'])
+            ->where('unit_type_id', $universityType->id);
 
         if ($this->province_id) {
-            $unitsQuery->whereHas('city', function ($q) {
+            $rootQuery->whereHas('city', function ($q) {
                 $q->where('province_id', $this->province_id);
             });
         }
 
-        $universities = $unitsQuery->get();
+        $roots = $rootQuery->get();
+        
+        // ۲. دریافت تمام واحدها برای ساخت درخت در حافظه (برای جلوگیری از کوئری‌های مکرر)
+        // اگر تعداد کل واحدها خیلی زیاد نیست، همه را بگیرید. در غیر این صورت باید از بازگشتی بهینه استفاده کرد.
+        $allUnits = Unit::with(['type', 'city'])->get();
 
-        // جمع‌آوری همه نودهای موردنیاز (دانشگاه + همه زیرمجموعه‌ها)
-        $allowedIds = [];
-
-        foreach ($universities as $uni) {
-            $this->collectChildrenIds($uni, $allowedIds);
-        }
-
-        // گرفتن کل واحدهای مجاز
-        $units = Unit::with('type', 'city')
-            ->whereIn('id', $allowedIds)
-            ->get();
-
-        // ساخت درخت واقعی
-        $this->tree = $this->makeTree($units);
+        $this->tree = $this->makeTree($allUnits, $roots->pluck('id')->toArray());
     }
 
-    private function collectChildrenIds(Unit $unit, array &$ids)
-    {
-        if (in_array($unit->id, $ids)) {
-            return;
-        }
-
-        $ids[] = $unit->id;
-
-        foreach ($unit->children as $child) {
-            $this->collectChildrenIds($child, $ids);
-        }
-    }
-
-    private function makeTree($units)
+    private function makeTree($allUnits, $rootIds)
     {
         $items = [];
-        foreach ($units as $unit) {
+        foreach ($allUnits as $unit) {
             $items[$unit->id] = [
                 'model' => $unit,
                 'children' => [],
@@ -90,20 +62,21 @@ class UnitTree extends Component
         }
 
         $tree = [];
-
         foreach ($items as $id => &$node) {
             $parentId = $node['model']->parent_id;
-
+            
             if ($parentId && isset($items[$parentId])) {
                 $items[$parentId]['children'][] = &$node;
-            } else {
+            }
+            
+            // فقط واحدهایی که جزو ریشه‌های فیلتر شده هستند را در سطح اول قرار بده
+            if (in_array($id, $rootIds)) {
                 $tree[] = &$node;
             }
         }
 
         return $tree;
     }
-
 
     public function render()
     {
