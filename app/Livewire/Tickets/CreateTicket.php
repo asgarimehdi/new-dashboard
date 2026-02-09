@@ -54,9 +54,17 @@ class CreateTicket extends Component
     public function saveTicket()
     {
         $this->validate([
-            'unit_id' => 'required',
-            'subject' => 'required|min:5',
-            'content' => 'required|min:10',
+            'unit_id' => [
+                'required',
+                'exists:units,id', // مطمئن شویم واحد در دیتابیس وجود دارد
+                function ($attribute, $value, $fail) {
+                    if ($value == auth()->user()->unit_id) {
+                        $fail('شما نمی‌توانید به واحد خودتان تیکت ارسال کنید.');
+                    }
+                },
+            ],
+            'subject' => 'required|string|min:5|max:255',
+            'content' => 'required|string|min:10',
         ]);
 
         $ticketCode = 'TK-' . strtoupper(substr(uniqid(), -6));
@@ -104,13 +112,19 @@ class CreateTicket extends Component
     public function render()
     {
         $units = [];
+
         if (strlen($this->search) >= 2) {
-            $units = Unit::where('can_receive_tickets', true)
-                ->where('is_active', true)
-                ->where('name', 'like', '%' . $this->search . '%')
-                ->take(5)
-                ->get();
+            $userUnitId = auth()->user()->unit_id;
+
+            $query = Unit::where('can_receive_tickets', true)->where('is_active', true);
+
+            if ($userUnitId) {
+                $query->where('id', '!=', $userUnitId);
+            }
+
+            $units = $query->where('name', 'like', '%' . $this->search . '%')->take(5)->get();
         }
+
         return view('livewire.tickets.create-ticket', compact('units'));
     }
 }
