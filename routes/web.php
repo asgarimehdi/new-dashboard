@@ -11,6 +11,7 @@ use App\Livewire\Users\UserIndex;
 use App\Livewire\Tickets\CreateTicket;
 use App\Livewire\Tickets\TicketInbox;
 use App\Livewire\Roles\RoleManager;
+use App\Livewire\UnitTypes\UnitTypeHierarchyManager;
 
 Route::get('/role-manager', RoleManager::class)->name('roles.manager');
 
@@ -45,6 +46,9 @@ Route::get('/unit-types', UnitTypeIndex::class);
 Route::get('/cities', CityIndex::class);
 
 Route::get('/provinces', ProvinceIndex::class);
+
+Route::get('/unit-types/hierarchy', UnitTypeHierarchyManager::class);
+
 
 // Route::get('/', function () {
 //     return view('welcome');

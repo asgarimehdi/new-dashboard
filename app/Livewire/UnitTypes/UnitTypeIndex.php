@@ -6,7 +6,7 @@ use Livewire\WithPagination;
 use App\Models\UnitType;
 use Livewire\Attributes\Layout;
 
-#[Layout('components.layouts.app')]
+#[Layout('layouts.app')]
 class UnitTypeIndex extends Component
 {
     use WithPagination;
