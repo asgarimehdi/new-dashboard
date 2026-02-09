@@ -2,70 +2,67 @@
 
 namespace App\Livewire\Units;
 
-use App\Models\Unit;
-use App\Models\City;
-use App\Models\Province;
-use App\Models\UnitType;
-use App\Models\UnitTypeHierarchy;
-use Livewire\Component;
-use Livewire\WithPagination;
-use Livewire\Attributes\Layout;
+use App\Models\{Unit, City, Province, UnitType, UnitTypeHierarchy};
+use Livewire\{Component, WithPagination, Attributes\Layout};
 
 #[Layout('components.layouts.app')]
 class UnitIndex extends Component
 {
     use WithPagination;
 
-    protected $paginationTheme = 'tailwind';
-
-    public $name;
-    public $province_id;
-    public $city_id;
-    public $unit_type_id;
-    public $parent_id;
+    // Properties
+    public $name, $province_id, $city_id, $unit_type_id, $parent_id, $unitId;
     public $is_active = true;
-    public $unitId;
-
     public $search = '';
 
-    /* ===================== Rules ===================== */
-    protected function rules()
+    protected $updatesQueryString = ['search'];
+
+    public function rules()
     {
         return [
-            'name' => 'required|string|min:3',
-            'province_id' => 'required|exists:provinces,id',
-            'city_id' => $this->isNationalUnit()
-             ? 'nullable'
-             : 'required|exists:cities,id',
+            'name' => 'required|string|min:3|max:255',
+            'province_id' => $this->isNationalUnit() ? 'nullable' : 'required|exists:provinces,id',
+            'city_id' => $this->isNationalUnit() ? 'nullable' : 'required|exists:cities,id',
             'unit_type_id' => 'required|exists:unit_types,id',
-            'parent_id' => 'nullable|exists:units,id',
+            'parent_id' => [
+                $this->requiresParent() ? 'required' : 'nullable',
+                'exists:units,id',
+                function ($attribute, $value, $fail) {
+                    if ($this->unitId && $value == $this->unitId) {
+                        $fail('یک واحد نمی‌تواند زیرمجموعه خودش باشد.');
+                    }
+                },
+            ],
             'is_active' => 'boolean',
         ];
     }
 
-    /* ===================== Core ===================== */
+    /* -------------------- Actions -------------------- */
     public function save()
     {
         $this->validate();
         $this->validateHierarchy();
 
         Unit::create($this->unitData());
-
+        
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'واحد جدید با موفقیت ثبت شد']);
         $this->resetForm();
-        session()->flash('success', 'واحد با موفقیت ثبت شد');
     }
 
     public function edit($id)
     {
         $unit = Unit::with('city.province')->findOrFail($id);
-
+        
         $this->unitId = $unit->id;
         $this->name = $unit->name;
-        $this->province_id = $unit->city->province_id;
-        $this->city_id = $unit->city_id;
         $this->unit_type_id = $unit->unit_type_id;
         $this->parent_id = $unit->parent_id;
         $this->is_active = $unit->is_active;
+
+        if ($unit->city) {
+            $this->province_id = $unit->city->province_id;
+            $this->city_id = $unit->city_id;
+        }
     }
 
     public function update()
@@ -75,120 +72,78 @@ class UnitIndex extends Component
 
         Unit::findOrFail($this->unitId)->update($this->unitData());
 
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'تغییرات با موفقیت اعمال شد']);
         $this->resetForm();
-        session()->flash('success', 'واحد بروزرسانی شد');
     }
 
     public function delete($id)
     {
-        Unit::where('parent_id', $id)->update(['parent_id' => null]);
-        Unit::findOrFail($id)->delete();
+        $unit = Unit::findOrFail($id);
+        // انتقال فرزندان به سطح بالاتر یا حذف منطقی (وابسته به بیزنس شما)
+        Unit::where('parent_id', $id)->update(['parent_id' => $unit->parent_id]);
+        $unit->delete();
 
-        session()->flash('success', 'واحد حذف شد');
+        $this->dispatch('notify', ['type' => 'warning', 'message' => 'واحد مورد نظر حذف شد']);
     }
 
-    /* ===================== Hierarchy Logic ===================== */
-
-    private function requiresParent(): bool
-    {
-        $type = UnitType::find($this->unit_type_id);
-
-        return $type && $type->title !== 'وزارت بهداشت';
-    }
-
-    private function allowedParents()
-    {
-        if (!$this->unit_type_id) {
-            return collect();
-        }
-
-        $allowedTypeIds = UnitTypeHierarchy::where(
-            'child_unit_type_id',
-            $this->unit_type_id
-        )->pluck('parent_unit_type_id');
-
-        return Unit::whereIn('unit_type_id', $allowedTypeIds)->get();
-    }
-
-    private function validateHierarchy(): void
-    {
-        if ($this->requiresParent() && !$this->parent_id) {
-            $this->addError('parent_id', 'برای این نوع واحد، انتخاب بالادست الزامی است');
-            abort(422);
-        }
-
-        if ($this->parent_id) {
-            $validParentIds = $this->allowedParents()->pluck('id')->toArray();
-
-            if (!in_array($this->parent_id, $validParentIds)) {
-                $this->addError('parent_id', 'واحد بالادست انتخاب‌شده مجاز نیست');
-                abort(422);
-            }
-        }
-    }
-
-    /* ===================== Helpers ===================== */
-    private function unitData(): array
-    {
+    /* -------------------- Helpers -------------------- */
+    private function unitData(): array {
         return [
             'name' => $this->name,
-            'city_id' => $this->city_id,
+            'city_id' => $this->isNationalUnit() ? null : $this->city_id,
             'unit_type_id' => $this->unit_type_id,
             'parent_id' => $this->parent_id,
             'is_active' => $this->is_active,
         ];
     }
 
-    public function resetForm()
-    {
-        $this->reset([
-            'name',
-            'province_id',
-            'city_id',
-            'unit_type_id',
-            'parent_id',
-            'is_active',
-            'unitId',
-        ]);
-
-        $this->is_active = true;
+    public function isNationalUnit(): bool {
+        $type = UnitType::find($this->unit_type_id);
+        return $type && $type->title === 'وزارت بهداشت';
     }
 
-    /* ===================== Render ===================== */
-    public function getRequiresParentProperty(): bool
-{
-    return $this->requiresParent();
-}
+    public function requiresParent(): bool {
+        return !$this->isNationalUnit() && $this->unit_type_id;
+    }
 
-public function updatedUnitTypeId()
-{
-    // وقتی نوع واحد عوض شد، parent قبلی پاک شود
-    $this->parent_id = null;
-}
-private function isNationalUnit(): bool
-{
-    $type = UnitType::find($this->unit_type_id);
+    public function updatedProvinceId() { $this->city_id = null; }
 
-    return $type && $type->title === 'وزارت بهداشت';
-}
+    public function updatedUnitTypeId() { $this->parent_id = null; }
+
+    public function resetForm() {
+        $this->reset(['name', 'province_id', 'city_id', 'unit_type_id', 'parent_id', 'unitId']);
+        $this->is_active = true;
+        $this->resetErrorBag();
+    }
+
+    private function validateHierarchy() {
+        if ($this->parent_id) {
+            $allowedTypeIds = UnitTypeHierarchy::where('child_unit_type_id', $this->unit_type_id)
+                ->pluck('parent_unit_type_id')->toArray();
+            
+            $parentUnit = Unit::find($this->parent_id);
+            if (!$parentUnit || !in_array($parentUnit->unit_type_id, $allowedTypeIds)) {
+                $this->addError('parent_id', 'انتخاب این واحد به عنوان بالادست مجاز نیست.');
+                abort(422);
+            }
+        }
+    }
 
     public function render()
     {
+        $allowedTypeIds = UnitTypeHierarchy::where('child_unit_type_id', $this->unit_type_id)
+            ->pluck('parent_unit_type_id');
+
         return view('livewire.units.unit-index', [
             'units' => Unit::with(['type', 'city.province', 'parent'])
-                ->where('name', 'like', '%' . $this->search . '%')
-                ->latest()
-                ->paginate(10),
-
-            'provinces' => Province::orderBy('name')->get(),
-
-            'cities' => $this->province_id
-                ? City::where('province_id', $this->province_id)->orderBy('name')->get()
-                : [],
-
-            'types' => UnitType::orderBy('title')->get(),
-
-            'parents' => $this->allowedParents(),
+                ->where('name', 'like', "%{$this->search}%")
+                ->latest()->paginate(10),
+            'provinces' => Province::all(),
+            'cities' => $this->province_id ? City::where('province_id', $this->province_id)->get() : [],
+            'types' => UnitType::all(),
+            'parents' => Unit::whereIn('unit_type_id', $allowedTypeIds)
+                ->when($this->unitId, fn($q) => $q->where('id', '!=', $this->unitId))
+                ->get(),
         ]);
     }
 }

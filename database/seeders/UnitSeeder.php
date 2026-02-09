@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class UnitSeeder extends Seeder
 {
     private $nationalCodeBase = 4400000000;
-
+ 
     public function run(): void
     {
         $zanjan = City::where('name', 'زنجان')->first();
@@ -21,9 +21,11 @@ class UnitSeeder extends Seeder
         // ۱. دانشگاه و معاونت (شهر زنجان)
         $uni = $this->addUnit('دانشگاه علوم پزشکی زنجان', 'دانشگاه علوم پزشکی', $ministry->id, $zanjan->id);
         $mBehdasht = $this->addUnit('معاونت بهداشت دانشگاه علوم پزشکی زنجان', 'معاونت بهداشت', $uni->id, $zanjan->id);
-
-        // ۲. شبکه ابهر (شهر ابهر)
-        $setadAbhar = $this->addUnit('ستاد شبکه بهداشت و درمان ابهر', 'ستاد شبکه بهداشت و درمان', $mBehdasht->id, $abhar->id);
+ // ۲. شبکه ابهر (شهر ابهر)
+        $shAbhar = $this->addUnit(' شبکه بهداشت و درمان ابهر', 'شبکه بهداشت و درمان', $mBehdasht->id, $abhar->id);
+        
+        // ۲. ستادشبکه ابهر (شهر ابهر)
+        $setadAbhar = $this->addUnit('ستاد شبکه بهداشت و درمان ابهر', 'ستاد شبکه بهداشت و درمان', $shAbhar->id, $abhar->id);
         
         // ۳. حوزه مدیریت و امور عمومی
         $hazeModiriat = $this->addUnit('حوزه مدیریت شبکه ابهر', 'حوزه مدیریت', $setadAbhar->id, $abhar->id);
