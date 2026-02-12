@@ -5,7 +5,7 @@ namespace App\Livewire\Units;
 use App\Models\{Unit, City, Province, UnitType, UnitTypeHierarchy};
 use Livewire\{Component, WithPagination, Attributes\Layout};
 
-#[Layout('components.layouts.app')]
+#[Layout('layouts.app')]
 class UnitIndex extends Component
 {
     use WithPagination;

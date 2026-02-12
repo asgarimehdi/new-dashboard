@@ -30,10 +30,10 @@
 </head>
 <body class="bg-gray-100 font-sans">
 
-    {{-- هدر ساده (فعلاً) --}}
+    <!-- {{-- هدر ساده (فعلاً) --}}
     <header class="bg-blue-700 text-white p-4 text-center font-bold">
         Task Manager System (TMS)
-    </header>
+    </header> -->
 
     {{-- محتوای صفحه --}}
     <main class="py-6">

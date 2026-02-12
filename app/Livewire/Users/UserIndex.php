@@ -10,7 +10,7 @@ use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
-#[Layout('components.layouts.app')]
+#[Layout('layouts.app')]
 class UserIndex extends Component
 {
     use WithPagination;
