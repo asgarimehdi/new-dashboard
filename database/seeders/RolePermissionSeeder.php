@@ -30,31 +30,31 @@ class RolePermissionSeeder extends Seeder
         // ۳. ایجاد نقش‌ها و اختصاص دسترسی‌ها
 
         // مدیر سامانه (همه دسترسی‌ها)
-        $adminSystem = Role::findOrCreate('مدیر سامانه', 'web');
+        $adminSystem = Role::findOrCreate('superadmin', 'web');
         $adminSystem->syncPermissions(Permission::all());
 
         // مدیر کل
-        $generalManager = Role::findOrCreate('مدیر کل', 'web');
+        $generalManager = Role::findOrCreate('admin', 'web');
         $generalManager->syncPermissions([
             'view-tree-structure', 'create-tickets', 'view-tickets-list', 
             'view-tickets-stats', 'view-profile', 'view-dashboard', 'view-reports'
         ]);
 
         // مدیر واحد
-        $unitManager = Role::findOrCreate('مدیر واحد', 'web');
+        $unitManager = Role::findOrCreate('unit_admin', 'web');
         $unitManager->syncPermissions([
             'create-tickets', 'view-tickets-list', 'view-tickets-stats', 
             'view-profile', 'view-dashboard'
         ]);
 
         // کارشناس
-        $expert = Role::findOrCreate('کارشناس', 'web');
+        $expert = Role::findOrCreate('unit_expert', 'web');
         $expert->syncPermissions([
             'create-tickets', 'view-tickets-list', 'view-profile', 'view-dashboard'
         ]);
 
         // کاربر عادی
-        $normalUser = Role::findOrCreate('کاربر عادی', 'web');
+        $normalUser = Role::findOrCreate('user', 'web');
         $normalUser->syncPermissions([
             'create-tickets', 'view-tickets-list', 'view-profile'
         ]);
@@ -62,7 +62,7 @@ class RolePermissionSeeder extends Seeder
         // ۴. اختصاص نقش به کاربر شماره ۱ (اگر وجود داشته باشد)
         $user = User::find(1);
         if ($user) {
-            $user->assignRole('مدیر سامانه');
+            $user->assignRole('superadmin');
         }
     }
 }

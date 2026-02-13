@@ -55,7 +55,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | اگر از Spatie استفاده می‌کنید، میان‌افزار 'role:admin' است.
     |----------------------------------------------------------------------
     */
-    Route::middleware(['role:admin'])->group(function () {
+    Route::middleware(['role:superadmin'])->group(function () {
         
         // مدیریت سطوح دسترسی و نقش‌ها
         Route::get('/role-manager', RoleManager::class)->name('roles.manager');

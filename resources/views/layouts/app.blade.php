@@ -29,19 +29,27 @@
 </style>
 </head>
 <body class="bg-gray-100 font-sans">
+<div class="min-h-screen bg-gray-100 flex">
+    {{-- سایدبار --}}
+    @include('layouts.sidebar')
 
-    <!-- {{-- هدر ساده (فعلاً) --}}
-    <header class="bg-blue-700 text-white p-4 text-center font-bold">
-        Task Manager System (TMS)
-    </header> -->
+    {{-- محتوای اصلی سمت چپ --}}
+    <div class="flex-1 flex flex-col min-w-0">
+        @include('layouts.navigation')
 
-    {{-- محتوای صفحه --}}
-    <main class="py-6">
-        @include('layouts.navigation') {{-- این خط مسئول نمایش منوی خروج و نام کاربر است --}}
-        {{ $slot }}
+        @if (isset($header))
+            <header class="bg-white shadow">
+                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    {{ $header }}
+                </div>
+            </header>
+        @endif
 
-    </main>
-
+        <main class="p-6">
+            {{ $slot }}
+        </main>
+    </div>
+</div>
     @livewireScripts
  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
