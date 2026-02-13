@@ -20,6 +20,7 @@ use App\Livewire\Roles\RoleManager;
 | روت‌های عمومی (Public Routes)
 |--------------------------------------------------------------------------
 */
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -29,63 +30,68 @@ Route::get('/', function () {
 | روت‌های تحت نظارت سیستم احراز هویت (Authenticated Routes)
 |--------------------------------------------------------------------------
 */
+
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
-Route::get('/dashboard', function () {
-    $user = Auth::user();
-    $myId = $user->id;
-    $myUnitId = $user->unit_id;
 
-    $stats = [
-        // ۱. تیکت‌های ورودی جدید واحد (بررسی نشده)
-        'pending_inbox' => Ticket::where('unit_id', $myUnitId)
-            ->whereIn('status', ['created', 'forwarded'])->count(),
-
-        // ۲. تیکت‌های در حال پیگیری توسط من
-        'my_in_progress' => Ticket::where('current_assignee_id', $myId)
-            ->where('status', 'accepted')->count(),
-
-        // ۳. تیکت‌های انجام شده توسط من
-        'my_completed' => Ticket::where('current_assignee_id', $myId)
-            ->where('status', 'completed')->count(),
-
-        // ۴. ارسالی‌های من در انتظار تایید
-        'my_outbox_waiting' => Ticket::where('user_id', $myId)
-            ->whereIn('status', ['created', 'forwarded'])->count(),
-
-        // ۵. ارسالی‌های من که تایید شده
-        'my_outbox_accepted' => Ticket::where('user_id', $myId)
-            ->where('status', 'accepted')->count(),
-
-        // ۶. ارسالی‌های من که رد شده
-        'my_outbox_rejected' => Ticket::where('user_id', $myId)
-            ->where('status', 'rejected')->count(),
-
-        // ۷. ارسالی‌های من که نهایی و تمام شده
-        'my_outbox_done' => Ticket::where('user_id', $myId)
-            ->where('status', 'completed')->count(),
-
-        // ۸. فیلدی که باعث خطا شده بود (کل کاربران)
-        'total_users' => User::count(),
-
-        // ۹. آخرین فعالیت‌ها
-        'recent_tickets' => Ticket::where('unit_id', $myUnitId)
-            ->orWhere('user_id', $myId)
-            ->with(['user', 'unit', 'assignee'])
-            ->latest()->take(5)->get(),
-    ];
-
-    return view('dashboard', compact('stats'));
-})->middleware(['auth', 'verified'])->name('dashboard');
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // داشبورد اصلی
     // Route::get('/dashboard', function () {
     //     return view('dashboard');
     // })->name('dashboard');
-    
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
+        $myId = $user->id;
+        $myUnitId = $user->unit_id;
+
+        $stats = [
+            // ۱. تیکت‌های ورودی جدید واحد (بررسی نشده)
+            'pending_inbox' => Ticket::where('unit_id', $myUnitId)
+                ->whereIn('status', ['created', 'forwarded'])->count(),
+
+            // ۲. تیکت‌های در حال پیگیری توسط من
+            'my_in_progress' => Ticket::where('current_assignee_id', $myId)
+                ->where('status', 'accepted')->count(),
+
+            // ۳. تیکت‌های انجام شده توسط من
+            'my_completed' => Ticket::where('current_assignee_id', $myId)
+                ->where('status', 'completed')->count(),
+
+            // ۴. ارسالی‌های من در انتظار تایید
+            'my_outbox_waiting' => Ticket::where('user_id', $myId)
+                ->whereIn('status', ['created', 'forwarded'])->count(),
+
+            // ۵. ارسالی‌های من که تایید شده
+            'my_outbox_accepted' => Ticket::where('user_id', $myId)
+                ->where('status', 'accepted')->count(),
+
+            // ۶. ارسالی‌های من که رد شده
+            'my_outbox_rejected' => Ticket::where('user_id', $myId)
+                ->where('status', 'rejected')->count(),
+
+            // ۷. ارسالی‌های من که نهایی و تمام شده
+            'my_outbox_done' => Ticket::where('user_id', $myId)
+                ->where('status', 'completed')->count(),
+
+            // ۸. فیلدی که باعث خطا شده بود (کل کاربران)
+            'total_users' => User::count(),
+
+            // ۹. آخرین فعالیت‌ها
+            'recent_tickets' => Ticket::where('unit_id', $myUnitId)
+                ->orWhere('user_id', $myId)
+                ->with(['user', 'unit', 'assignee'])
+                ->latest()->take(5)->get(),
+        ];
+
+        return view('dashboard', compact('stats'));
+    })->middleware(['auth', 'verified'])->name('dashboard');
+
+    // مسیر مانیتورینگ
+    Route::get('/monitoring', \App\Livewire\Tickets\AllTicketsMonitoring::class)->name('tickets.monitoring');
+
 
     // مدیریت پروفایل کاربر
     Route::controller(ProfileController::class)->group(function () {
@@ -107,7 +113,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware(['role:superadmin'])->group(function () {
-        
+
         // مدیریت سطوح دسترسی و نقش‌ها
         Route::get('/role-manager', RoleManager::class)->name('roles.manager');
 
@@ -130,10 +136,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 });
-
 /*
 |--------------------------------------------------------------------------
 | روت‌های احراز هویت Breeze (Login, Register, Logout, ...)
 |--------------------------------------------------------------------------
 */
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
