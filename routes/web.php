@@ -35,34 +35,46 @@ use Illuminate\Support\Facades\Auth;
 
 Route::get('/dashboard', function () {
     $user = Auth::user();
+    $myId = $user->id;
     $myUnitId = $user->unit_id;
 
-    // ۱. تیکت‌های ورودی: تیکت‌هایی که به واحد من فرستاده شده (unit_id)
-    $inboxQuery = Ticket::where('unit_id', $myUnitId);
-
-    // ۲. تیکت‌های خروجی: تیکت‌هایی که من خودم ایجاد کردم (user_id)
-    $outboxQuery = Ticket::where('user_id', $user->id);
-
     $stats = [
-        // تیکت‌های ورودی که هنوز وضعیتشان 'created' یا 'forwarded' است (یعنی هنوز accepted یا rejected نشده‌اند)
-        'pending_inbox' => (clone $inboxQuery)->whereIn('status', ['created', 'forwarded'])->count(),
-        
-        // تیکت‌هایی که من فرستادم و توسط واحد مقصد 'accepted' شده‌اند
-        'accepted_outbox' => (clone $outboxQuery)->where('status', 'accepted')->count(),
-        
-        // تیکت‌هایی که من فرستادم و توسط واحد مقصد 'rejected' شده‌اند
-        'rejected_outbox' => (clone $outboxQuery)->where('status', 'rejected')->count(),
+        // ۱. تیکت‌های ورودی جدید واحد (بررسی نشده)
+        'pending_inbox' => Ticket::where('unit_id', $myUnitId)
+            ->whereIn('status', ['created', 'forwarded'])->count(),
 
-        // کل کاربران سیستم (برای ویجت ادمین)
+        // ۲. تیکت‌های در حال پیگیری توسط من
+        'my_in_progress' => Ticket::where('current_assignee_id', $myId)
+            ->where('status', 'accepted')->count(),
+
+        // ۳. تیکت‌های انجام شده توسط من
+        'my_completed' => Ticket::where('current_assignee_id', $myId)
+            ->where('status', 'completed')->count(),
+
+        // ۴. ارسالی‌های من در انتظار تایید
+        'my_outbox_waiting' => Ticket::where('user_id', $myId)
+            ->whereIn('status', ['created', 'forwarded'])->count(),
+
+        // ۵. ارسالی‌های من که تایید شده
+        'my_outbox_accepted' => Ticket::where('user_id', $myId)
+            ->where('status', 'accepted')->count(),
+
+        // ۶. ارسالی‌های من که رد شده
+        'my_outbox_rejected' => Ticket::where('user_id', $myId)
+            ->where('status', 'rejected')->count(),
+
+        // ۷. ارسالی‌های من که نهایی و تمام شده
+        'my_outbox_done' => Ticket::where('user_id', $myId)
+            ->where('status', 'completed')->count(),
+
+        // ۸. فیلدی که باعث خطا شده بود (کل کاربران)
         'total_users' => User::count(),
 
-        // ۵ تیکت آخر برای جدول فعالیت‌ها
+        // ۹. آخرین فعالیت‌ها
         'recent_tickets' => Ticket::where('unit_id', $myUnitId)
-            ->orWhere('user_id', $user->id)
-            ->with(['user', 'unit'])
-            ->latest()
-            ->take(5)
-            ->get(),
+            ->orWhere('user_id', $myId)
+            ->with(['user', 'unit', 'assignee'])
+            ->latest()->take(5)->get(),
     ];
 
     return view('dashboard', compact('stats'));

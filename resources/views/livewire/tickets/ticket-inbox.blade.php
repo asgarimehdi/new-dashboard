@@ -6,89 +6,120 @@
         </div>
 
         <div class="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden">
-<table class="w-full text-right">
-    <thead class="bg-gray-50 text-gray-500 text-sm">
-        <tr>
-            <th class="p-4 text-right">کد / فرستنده</th>
-            <th class="p-4 text-center">اولویت</th>
-            <th class="p-4 text-center">وضعیت</th> <th class="p-4 text-right">موضوع</th>
-            <th class="p-4 text-left">عملیات</th>
-        </tr>
-    </thead>
-   <tbody class="divide-y divide-gray-50">
-    @forelse($tickets as $ticket)
-        <tr class="hover:bg-gray-50 transition">
-            <td class="p-4">
-                <span class="font-mono text-indigo-600 block text-xs">#{{ $ticket->ticket_code }}</span>
-                <span class="text-sm font-bold text-gray-700">{{ $ticket->user?->full_name ?? 'کاربر سیستم' }}</span>
-            </td>
+            <div class="mb-6 border-b border-gray-200 ">
+                <ul class="flex flex-wrap -mb-px text-sm font-medium text-center">
+                    <li class="ml-2">
+                        <button wire:click="setTab('pending')"
+                            class="inline-block p-4 rounded-t-lg border-b-2 transition-colors {{ $currentTab === 'pending' ? 'border-blue-600 text-blue-600 active' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
+                            در انتظار بررسی
+                            <span class="bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
+                                {{-- این عدد را می‌توانید از متغیر استتس داشبورد هم بگیرید --}}
+                            </span>
+                        </button>
+                    </li>
+                    <li class="ml-2">
+                        <button wire:click="setTab('accepted')"
+                            class="inline-block p-4 rounded-t-lg border-b-2 transition-colors {{ $currentTab === 'accepted' ? 'border-blue-600 text-blue-600' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
+                            قبول شده
+                        </button>
+                    </li>
+                    <li class="ml-2">
+                        <button wire:click="setTab('rejected')"
+                            class="inline-block p-4 rounded-t-lg border-b-2 transition-colors {{ $currentTab === 'rejected' ? 'border-blue-600 text-blue-600' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
+                            رد شده
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <table class="w-full text-right">
+                <thead class="bg-gray-50 text-gray-500 text-sm">
+                    <tr>
+                        <th class="p-4 text-right">کد / فرستنده</th>
+                        <th class="p-4 text-center">اولویت</th>
+                        <th class="p-4 text-center">وضعیت</th>
+                        <th class="p-4 text-right">موضوع</th>
+                        <th class="p-4 text-left">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @forelse($tickets as $ticket)
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-4">
+                            <span class="font-mono text-indigo-600 block text-xs">#{{ $ticket->ticket_code }}</span>
+                            <span class="text-sm font-bold text-gray-700">{{ $ticket->user?->full_name ?? 'کاربر سیستم' }}</span>
+                        </td>
 
-            {{-- اولویت --}}
-            <td class="p-4 text-center">
-                @php
-                    $priorityColors = [
-                        'urgent' => 'bg-red-100 text-red-700 border-red-200',
-                        'normal' => 'bg-blue-100 text-blue-700 border-blue-200',
-                        'low'    => 'bg-gray-100 text-gray-700 border-gray-200',
-                    ];
-                    $priorityLabels = ['urgent' => 'فوری', 'normal' => 'معمولی', 'low' => 'کم‌اهمیت'];
-                @endphp
-                <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $priorityColors[$ticket->priority] ?? $priorityColors['low'] }}">
-                    {{ $priorityLabels[$ticket->priority] ?? 'نامشخص' }}
-                </span>
-            </td>
+                        {{-- اولویت --}}
+                        <td class="p-4 text-center">
+                            @php
+                            $priorityColors = [
+                            'urgent' => 'bg-red-100 text-red-700 border-red-200',
+                            'normal' => 'bg-blue-100 text-blue-700 border-blue-200',
+                            'low' => 'bg-gray-100 text-gray-700 border-gray-200',
+                            ];
+                            $priorityLabels = ['urgent' => 'فوری', 'normal' => 'معمولی', 'low' => 'کم‌اهمیت'];
+                            @endphp
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $priorityColors[$ticket->priority] ?? $priorityColors['low'] }}">
+                                {{ $priorityLabels[$ticket->priority] ?? 'نامشخص' }}
+                            </span>
+                        </td>
 
-            {{-- وضعیت با رنگ‌بندی اختصاصی --}}
-            <td class="p-4 text-center">
-                @php
-                    $statusColors = [
-                        'created'   => 'bg-purple-100 text-purple-700 border-purple-200',
-                        'forwarded' => 'bg-amber-100 text-amber-700 border-amber-200',
-                        'accepted'  => 'bg-blue-100 text-blue-700 border-blue-200',
-                        'closed'    => 'bg-gray-100 text-gray-700 border-gray-200',
-                        'rejected'  => 'bg-red-100 text-red-700 border-red-200',
-                    ];
-                @endphp
-                <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $statusColors[$ticket->status] ?? 'bg-gray-100' }}">
-                    {{ $ticket->status_name }}
-                </span>
-            </td>
+                        {{-- وضعیت با رنگ‌بندی اختصاصی --}}
+                        <td class="p-4 text-center">
+                            @php
+                            $statusColors = [
+                            'created' => 'bg-purple-100 text-purple-700 border-purple-200',
+                            'forwarded' => 'bg-amber-100 text-amber-700 border-amber-200',
+                            'accepted' => 'bg-blue-100 text-blue-700 border-blue-200',
+                            'closed' => 'bg-gray-100 text-gray-700 border-gray-200',
+                            'rejected' => 'bg-red-100 text-red-700 border-red-200',
+                            ];
+                            @endphp
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $statusColors[$ticket->status] ?? 'bg-gray-100' }}">
+                                {{ $ticket->status_name }}
+                            </span>
+                        </td>
 
-            <td class="p-4">
-                <div class="text-sm font-bold text-gray-800">{{ $ticket->subject }}</div>
-            </td>
+                        <td class="p-4">
+                            <div class="text-sm font-bold text-gray-800">{{ $ticket->subject }}</div>
+                        </td>
 
-            <td class="p-4 text-left flex items-center justify-end gap-2">
-                {{-- نمایش نام مسئول (تست رابطه assignee) --}}
-                @if($ticket->current_assignee_id)
-                    <span class="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border">
-                        در کارتابل: <b>{{ $ticket->assignee?->full_name ?? 'خطا در رابطه' }}</b>
-                    </span>
-                @endif
+                        <td class="p-4 text-left flex items-center justify-end gap-2">
+                            {{-- نمایش نام مسئول (تست رابطه assignee) --}}
+                            @if($ticket->current_assignee_id)
+                            <span class="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border">
+                                در کارتابل: <b>{{ $ticket->assignee?->full_name ?? 'خطا در رابطه' }}</b>
+                            </span>
+                            @endif
+                            @if($currentTab === 'pending')
 
-                <button wire:click="showTicket({{ $ticket->id }})" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100">
-                    مشاهده و ارجاع
-                </button>
 
-                {{-- دکمه تایید و رد فقط برای تیکت‌های پذیرفته نشده --}}
-                @if($ticket->status !== 'accepted' && $ticket->status !== 'rejected')
-                    <button wire:click="acceptTicket({{ $ticket->id }})" class="bg-green-50 text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100">
-                        تایید
-                    </button>
-                    
-                    <button onclick="confirm('آیا از رد تیکت اطمینان دارید؟') || event.stopImmediatePropagation()" 
-                            wire:click="rejectTicket({{ $ticket->id }})" 
-                            class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">
-                        رد
-                    </button>
-                @endif
-            </td>
-        </tr>
-    @empty
-        <tr><td colspan="5" class="p-10 text-center text-gray-400">تیکتی یافت نشد.</td></tr>
-    @endforelse
-</tbody>
-</table>
+                            {{-- دکمه تایید و رد فقط برای تیکت‌های پذیرفته نشده --}}
+                            @if($ticket->status !== 'accepted' && $ticket->status !== 'rejected')
+                            <button wire:click="acceptTicket({{ $ticket->id }})" class="bg-green-50 text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100">
+                                تایید
+                            </button>
+
+                            <button onclick="confirm('آیا از رد تیکت اطمینان دارید؟') || event.stopImmediatePropagation()"
+                                wire:click="rejectTicket({{ $ticket->id }})"
+                                class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">
+                                رد
+                            </button>
+                            @endif
+                            @else
+                            <button wire:click="showTicket({{ $ticket->id }})" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100">
+                                مشاهده و ارجاع
+                            </button>
+                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="p-10 text-center text-gray-400">تیکتی یافت نشد.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
             <div class="p-4">{{ $tickets->links() }}</div>
         </div>
     </div>
@@ -97,59 +128,63 @@
     @if($showingTicket)
     <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-         
-        {{-- بخش فرم ارجاع (داخل مودال) --}}
-                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                       <button wire:click="closeDetail" class="text-gray-400 hover:text-red-500 transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+
+            {{-- بخش فرم ارجاع (داخل مودال) --}}
+            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                <button wire:click="closeDetail" class="text-gray-400 hover:text-red-500 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
                 </button>
-                
-                    <h4 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                        ارجاع به واحد دیگر
-                    </h4>
-                    
-                    <div class="relative mb-4">
-                        <input type="text" wire:model.live="unitSearch" 
-                               class="w-full border-gray-200 rounded-lg p-2.5 text-sm focus:ring-indigo-500 focus:border-indigo-500" 
-                               placeholder="جستجوی نام واحد مقصد...">
-                        
-                        @if(!empty($units))
-                            <div class="absolute border z-50 w-full bg-white shadow-xl rounded-lg mt-1 overflow-hidden">
-                                @foreach($units as $unit)
-                                    <button wire:click="selectTargetUnit({{ $unit->id }}, '{{ $unit->name }}')" 
-                                            class="w-full text-right px-4 py-2.5 hover:bg-indigo-50 text-sm border-b last:border-0">
-                                        {{ $unit->name }}
-                                    </button>
-                                @endforeach
-                            </div>
-                        @endif
+
+                <h4 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                    ارجاع به واحد دیگر
+                </h4>
+
+                <div class="relative mb-4">
+                    <input type="text" wire:model.live="unitSearch"
+                        class="w-full border-gray-200 rounded-lg p-2.5 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="جستجوی نام واحد مقصد...">
+
+                    @if(!empty($units))
+                    <div class="absolute border z-50 w-full bg-white shadow-xl rounded-lg mt-1 overflow-hidden">
+                        @foreach($units as $unit)
+                        <button wire:click="selectTargetUnit({{ $unit->id }}, '{{ $unit->name }}')"
+                            class="w-full text-right px-4 py-2.5 hover:bg-indigo-50 text-sm border-b last:border-0">
+                            {{ $unit->name }}
+                        </button>
+                        @endforeach
                     </div>
-
-                    @if($targetUnitId)
-                        <div class="mb-4 p-3 bg-indigo-100 text-indigo-800 rounded-lg text-xs flex justify-between items-center">
-                            <span>واحد انتخاب شده: <b>{{ $targetUnitName }}</b></span>
-                            <button wire:click="$set('targetUnitId', null)" class="text-red-500 underline">تغییر</button>
-                        </div>
                     @endif
-
-                    <textarea wire:model="forwardNote" 
-                              class="w-full border-gray-200 rounded-lg p-3 text-sm focus:ring-indigo-500" 
-                              rows="2"
-                              placeholder="توضیحات یا علت ارجاع (اختیاری)"></textarea>
-
-                    <button wire:click="forward" 
-                            class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 transition-all">
-                         ارجاع تیکت
-                    </button>
                 </div>
-        {{-- هدر مودال --}}
+
+                @if($targetUnitId)
+                <div class="mb-4 p-3 bg-indigo-100 text-indigo-800 rounded-lg text-xs flex justify-between items-center">
+                    <span>واحد انتخاب شده: <b>{{ $targetUnitName }}</b></span>
+                    <button wire:click="$set('targetUnitId', null)" class="text-red-500 underline">تغییر</button>
+                </div>
+                @endif
+
+                <textarea wire:model="forwardNote"
+                    class="w-full border-gray-200 rounded-lg p-3 text-sm focus:ring-indigo-500"
+                    rows="2"
+                    placeholder="توضیحات یا علت ارجاع (اختیاری)"></textarea>
+
+                <button wire:click="forward"
+                    class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 transition-all">
+                    ارجاع تیکت
+                </button>
+            </div>
+            {{-- هدر مودال --}}
             <div class="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl sticky top-0 z-10">
                 <div>
                     <h3 class="text-lg font-bold text-gray-800">{{ $showingTicket->subject }}</h3>
                     <span class="text-xs text-gray-500 font-mono">#{{ $showingTicket->ticket_code }}</span>
                 </div>
-               
+
             </div>
 
             <div class="p-6 space-y-6 text-right" dir="rtl">
@@ -163,15 +198,17 @@
                 @if($showingTicket->attachments->count() > 0)
                 <div>
                     <h4 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                        </svg>
                         مستندات و پیوست‌ها ({{ $showingTicket->attachments->count() }})
                     </h4>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         @foreach($showingTicket->attachments as $file)
-                            <div class="flex items-center p-3 border border-gray-100 rounded-xl bg-gray-50">
-                                <span class="text-xs truncate flex-1">{{ $file->name }}</span>
-                                <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="text-indigo-600 hover:underline text-xs">دانلود</a>
-                            </div>
+                        <div class="flex items-center p-3 border border-gray-100 rounded-xl bg-gray-50">
+                            <span class="text-xs truncate flex-1">{{ $file->name }}</span>
+                            <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="text-indigo-600 hover:underline text-xs">دانلود</a>
+                        </div>
                         @endforeach
                     </div>
                 </div>
@@ -181,22 +218,22 @@
                 <div class="relative space-y-4 before:absolute before:right-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
                     <h4 class="text-sm font-bold text-gray-800 pr-6">تاریخچه فعالیت‌ها:</h4>
                     @foreach($showingTicket->activities->sortByDesc('created_at') as $activity)
-                        <div class="relative pr-8">
-                            <div class="absolute right-0 top-1 w-5 h-5 rounded-full bg-white border-2 border-indigo-500 flex items-center justify-center z-10 text-[10px]">📨</div>
-                            <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm text-xs">
-                                <div class="flex justify-between mb-1">
-                                    <span class="font-bold">{{ $activity->user->full_name ?? 'کاربر سیستم' }}</span>
-                                    <span class="text-gray-400">{{ jdate($activity->created_at)->format('H:i - Y/m/d') }}</span>
-                                </div>
-                                <p class="text-gray-600">{{ $activity->description }}</p>
+                    <div class="relative pr-8">
+                        <div class="absolute right-0 top-1 w-5 h-5 rounded-full bg-white border-2 border-indigo-500 flex items-center justify-center z-10 text-[10px]">📨</div>
+                        <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm text-xs">
+                            <div class="flex justify-between mb-1">
+                                <span class="font-bold">{{ $activity->user->full_name ?? 'کاربر سیستم' }}</span>
+                                <span class="text-gray-400">{{ jdate($activity->created_at)->format('H:i - Y/m/d') }}</span>
                             </div>
+                            <p class="text-gray-600">{{ $activity->description }}</p>
                         </div>
+                    </div>
                     @endforeach
                 </div>
 
                 <hr class="my-6">
 
-              
+
             </div>
 
             <div class="p-4 border-t bg-gray-50 flex justify-end">

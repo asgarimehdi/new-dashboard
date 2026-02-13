@@ -17,44 +17,62 @@
         <div class="max-w-7xl mx-auto space-y-8 text-right">
 
             {{-- ۱. کارت‌های آماری --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border-r-4 border-amber-500 flex items-center justify-between transition-transform hover:scale-[1.02]">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium italic">تیکت‌های ورودی (جدید)</p>
-                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ $stats['pending_inbox'] }}</h3>
-                    </div>
-                    <div class="bg-amber-50 p-3 rounded-xl text-amber-600">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border-r-4 border-emerald-500 flex items-center justify-between transition-transform hover:scale-[1.02]">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium italic">ارسالی‌های تایید شده</p>
-                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ $stats['accepted_outbox'] }}</h3>
-                    </div>
-                    <div class="bg-emerald-50 p-3 rounded-xl text-emerald-600">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border-r-4 border-red-500 flex items-center justify-between transition-transform hover:scale-[1.02]">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium italic">ارسالی‌های رد شده</p>
-                        <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ $stats['rejected_outbox'] }}</h3>
-                    </div>
-                    <div class="bg-red-50 p-3 rounded-xl text-red-600">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                </div>
+     <div class="space-y-8 " dir="rtl">
+    
+    {{-- ردیف اول: مدیریت تیکت‌های ورودی و وظایف من --}}
+    <div>
+        <h4 class="text-sm font-bold text-gray-400 mb-4 flex items-center gap-2 italic">
+            <span class="w-1 h-4 bg-purple-600 rounded-full"></span>
+            میز کار و وظایف من (ورودی)
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border-r-4 border-purple-500 transition-all hover:shadow-md">
+                <p class="text-xs text-gray-500 font-medium italic">تیکت‌های جدید واحد</p>
+                <h3 class="text-2xl font-extrabold text-gray-800 mt-2">{{ $stats['pending_inbox'] }}</h3>
             </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border-r-4 border-blue-500 transition-all hover:shadow-md">
+                <p class="text-xs text-gray-500 font-medium italic">در حال پیگیری توسط من</p>
+                <h3 class="text-2xl font-extrabold text-gray-800 mt-2">{{ $stats['my_in_progress'] }}</h3>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border-r-4 border-emerald-500 transition-all hover:shadow-md">
+                <p class="text-xs text-gray-500 font-medium italic">انجام شده توسط من</p>
+                <h3 class="text-2xl font-extrabold text-gray-800 mt-2">{{ $stats['my_completed'] }}</h3>
+            </div>
+        </div>
+    </div>
+
+    {{-- ردیف دوم: وضعیت تیکت‌های ارسالی من به بقیه --}}
+    <div>
+        <h4 class="text-sm font-bold text-gray-400 mb-4 flex items-center gap-2 italic">
+            <span class="w-1 h-4 bg-amber-500 rounded-full"></span>
+            تیکت‌های ارسالی من (خروجی)
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p class="text-[10px] text-gray-500 font-bold">در انتظار تایید مقصد</p>
+                <h4 class="text-lg font-bold text-amber-600 mt-1">{{ $stats['my_outbox_waiting'] }}</h4>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p class="text-[10px] text-gray-500 font-bold">تایید شده / در حال انجام</p>
+                <h4 class="text-lg font-bold text-blue-600 mt-1">{{ $stats['my_outbox_accepted'] }}</h4>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p class="text-[10px] text-gray-500 font-bold">رد شده توسط مقصد</p>
+                <h4 class="text-lg font-bold text-red-600 mt-1">{{ $stats['my_outbox_rejected'] }}</h4>
+            </div>
+
+            <div class="bg-emerald-600 p-4 rounded-xl border border-emerald-700 shadow-sm shadow-emerald-200">
+                <p class="text-[10px] text-white/80 font-bold">تکمیل و نهایی شده</p>
+                <h4 class="text-lg font-bold text-white mt-1">{{ $stats['my_outbox_done'] }}</h4>
+            </div>
+        </div>
+    </div>
+
+</div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -94,7 +112,7 @@
                                         @else
                                         <div class="flex flex-col items-center">
                                             <span class="text-purple-600 text-[11px] font-bold bg-purple-50 px-2 py-0.5 rounded">ورودی از:</span>
-                                            <span class="text-gray-600 text-xs mt-1">{{ $ticket->user->name ?? 'سیستمی' }}</span>
+                                            <span class="text-gray-600 text-xs mt-1">{{ $ticket->user->full_name ?? 'سیستمی' }}</span>
                                         </div>
                                         @endif
                                     </td>

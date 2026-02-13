@@ -21,8 +21,18 @@ class TicketInbox extends Component
     public $forwardNote = '';
     public $showingTicket = null;
 
-    public function render()
+   public $currentTab = 'pending'; // تب پیش‌فرض: در انتظار بررسی
+
+// متد برای تغییر تب
+public function setTab($tab)
 {
+    $this->currentTab = $tab;
+    $this->resetPage(); // برگشت به صفحه اول در صورت استفاده از پجینیشن
+}
+
+public function render()
+{
+    // جستجوی واحدها برای لیست دراپ‌داون (جهت ارجاع تیکت)
     $units = [];
     if (strlen($this->unitSearch) > 1) {
         $units = Unit::where('name', 'like', '%' . $this->unitSearch . '%')
@@ -30,10 +40,21 @@ class TicketInbox extends Component
                     ->limit(5)->get();
     }
 
-   $query = Ticket::with(['user', 'assignee']) // اصلاح شد: creator به user تغییر یافت
-                   ->where('unit_id', auth()->user()->unit_id)
-                   ->where('status', '!=', 'rejected');
+    // شروع کوئری تیکت‌های ورودی واحد کاربر جاری
+    $query = Ticket::with(['user', 'assignee'])
+                   ->where('unit_id', auth()->user()->unit_id);
 
+    // اعمال فیلتر بر اساس تب انتخاب شده
+    if ($this->currentTab === 'pending') {
+        // تیکت‌های جدید یا ارجاع شده که هنوز تعیین تکلیف نشده‌اند
+        $query->whereIn('status', ['created', 'forwarded']);
+    } elseif ($this->currentTab === 'accepted') {
+        $query->where('status', 'accepted');
+    } elseif ($this->currentTab === 'rejected') {
+        $query->where('status', 'rejected');
+    }
+
+    // منطق جستجو در موضوع، کد و محتوا
     if (!empty($this->search)) {
         $query->where(function($q) {
             $q->where('subject', 'like', '%' . $this->search . '%')
@@ -147,4 +168,5 @@ class TicketInbox extends Component
         $this->closeDetail();
     }
 }
+
 }
