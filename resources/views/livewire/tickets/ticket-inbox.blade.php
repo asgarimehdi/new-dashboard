@@ -1,36 +1,45 @@
 <div class="p-6">
     <div class="max-w-7xl mx-auto">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-gray-800">تیکت‌های ورودی واحد</h2>
+            <h2 class="text-xl font-bold text-gray-800">  صندوق تیکت ها</h2>
             <input type="text" wire:model.live="search" placeholder="جستجوی کد یا موضوع..." class="border-gray-200 rounded-xl text-sm w-64">
         </div>
 
         <div class="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden">
-            <div class="mb-6 border-b border-gray-200 ">
-                <ul class="flex flex-wrap -mb-px text-sm font-medium text-center">
-                    <li class="ml-2">
-                        <button wire:click="setTab('pending')"
-                            class="inline-block p-4 rounded-t-lg border-b-2 transition-colors {{ $currentTab === 'pending' ? 'border-blue-600 text-blue-600 active' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
-                            در انتظار بررسی
-                            <span class="bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
-                                {{-- این عدد را می‌توانید از متغیر استتس داشبورد هم بگیرید --}}
-                            </span>
-                        </button>
-                    </li>
-                    <li class="ml-2">
-                        <button wire:click="setTab('accepted')"
-                            class="inline-block p-4 rounded-t-lg border-b-2 transition-colors {{ $currentTab === 'accepted' ? 'border-blue-600 text-blue-600' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
-                            قبول شده
-                        </button>
-                    </li>
-                    <li class="ml-2">
-                        <button wire:click="setTab('rejected')"
-                            class="inline-block p-4 rounded-t-lg border-b-2 transition-colors {{ $currentTab === 'rejected' ? 'border-blue-600 text-blue-600' : 'border-transparent hover:text-gray-600 hover:border-gray-300' }}">
-                            رد شده
-                        </button>
-                    </li>
-                </ul>
-            </div>
+            <div class="p-6 " dir="rtl">
+    {{-- سوئیچ اصلی جهت تیکت --}}
+    <div class="flex bg-gray-200 p-1 rounded-2xl w-fit mb-8 shadow-inner">
+        <button wire:click="$set('viewMode', 'received'); $set('statusFilter', 'pending')" 
+            class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all {{ $viewMode === 'received' ? 'bg-white shadow-lg text-blue-700' : 'text-gray-500 hover:text-gray-700' }}">
+            ورودی‌های واحد
+        </button>
+        <button wire:click="$set('viewMode', 'sent'); $set('statusFilter', 'pending')" 
+            class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all {{ $viewMode === 'sent' ? 'bg-white shadow-lg text-blue-700' : 'text-gray-500 hover:text-gray-700' }}">
+            ارسالی‌های من
+        </button>
+    </div>
+
+    {{-- تب‌های وضعیت داینامیک --}}
+    <div class="flex flex-wrap gap-3 mb-6">
+        <button wire:click="$set('statusFilter', 'all')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200' }}">همه</button>
+        
+        @if($viewMode === 'received')
+            {{-- تب‌های بخش دریافتی --}}
+            <button wire:click="$set('statusFilter', 'pending')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'pending' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-500' }}">در انتظار بررسی</button>
+            <button wire:click="$set('statusFilter', 'accepted')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'accepted' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500' }}">قبول شده / در حال انجام</button>
+            <button wire:click="$set('statusFilter', 'rejected')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'rejected' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-500' }}">رد شده (توسط واحد ما)</button>
+            <button wire:click="$set('statusFilter', 'completed')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'completed' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500' }}">انجام شده</button>
+        @else
+            {{-- تب‌های بخش ارسالی --}}
+            <button wire:click="$set('statusFilter', 'pending')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'pending' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-500' }}">منتظر تایید مقصد</button>
+            <button wire:click="$set('statusFilter', 'accepted')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'accepted' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500' }}">تایید شده توسط مقصد</button>
+            <button wire:click="$set('statusFilter', 'rejected')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'rejected' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-500' }}">رد شده توسط مقصد</button>
+            <button wire:click="$set('statusFilter', 'completed')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'completed' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500' }}">تکمیل و نهایی شده</button>
+        @endif
+    </div>
+    
+    {{-- ادامه کد جدول تیکت‌ها که قبلا داشتید --}}
+</div>
             <table class="w-full text-right">
                 <thead class="bg-gray-50 text-gray-500 text-sm">
                     <tr>
