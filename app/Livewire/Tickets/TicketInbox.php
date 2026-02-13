@@ -20,9 +20,18 @@ class TicketInbox extends Component
     public $targetUnitName = '';
     public $forwardNote = '';
     public $showingTicket = null;
-
+    public $dateFrom = '';
+    public $dateTo = '';
     public $currentTab = 'pending'; // تب پیش‌فرض: در انتظار بررسی
+    public function updatedDateFrom()
+    {
+        $this->resetPage();
+    }
 
+    public function updatedDateTo()
+    {
+        $this->resetPage();
+    }
     // متد برای تغییر تب
     public function setTab($tab)
     {
@@ -62,7 +71,15 @@ class TicketInbox extends Component
         } elseif ($this->statusFilter !== 'all') {
             $query->where('status', $this->statusFilter);
         }
+        if ($this->dateFrom) {
+            $miladiFrom = \Morilog\Jalali\Jalalian::fromFormat('Y/m/d', $this->dateFrom)->toCarbon()->startOfDay();
+            $query->where('created_at', '>=', $miladiFrom);
+        }
 
+        if ($this->dateTo) {
+            $miladiTo = \Morilog\Jalali\Jalalian::fromFormat('Y/m/d', $this->dateTo)->toCarbon()->endOfDay();
+            $query->where('created_at', '<=', $miladiTo);
+        }
         // --- منطق جستجوی متن ---
         if (!empty($this->search)) {
             $query->where(function ($q) {

@@ -7,6 +7,51 @@
                 {{-- جستجوی متن --}}
                 <input type="text" wire:model.live="search" placeholder="جستجوی کد یا موضوع..." class="border-gray-200 rounded-xl text-sm w-full md:w-64 focus:ring-indigo-500">
             </div>
+            <div class="flex items-center gap-2" wire:ignore>
+                <input data-jdp id="filter_date_from"
+                    onclick="jalaliDatepicker.show(this)"
+                    placeholder="از تاریخ"
+                    class="border-gray-200 rounded-xl text-[10px] w-28 p-2 cursor-pointer" readonly>
+
+                <input data-jdp id="filter_date_to"
+                    onclick="jalaliDatepicker.show(this)"
+                    placeholder="تا تاریخ"
+                    class="border-gray-200 rounded-xl text-[10px] w-28 p-2 cursor-pointer" readonly>
+                    
+            </div>
+            
+            @script
+            <script>
+                // استفاده از ایونت خود لایووایر برای اطمینان از لود شدن DOM
+                $wire.on('init-picker', () => {
+                    jalaliDatepicker.startWatch();
+                });
+
+                const initJdp = () => {
+                    jalaliDatepicker.startWatch();
+
+                    const fromInput = document.getElementById('filter_date_from');
+                    const toInput = document.getElementById('filter_date_to');
+
+                    if (fromInput) {
+                        fromInput.addEventListener('jdp:change', e => {
+                            $wire.set('dateFrom', e.target.value);
+                        });
+                    }
+                    if (toInput) {
+                        toInput.addEventListener('jdp:change', e => {
+                            $wire.set('dateTo', e.target.value);
+                        });
+                    }
+                };
+
+                // اجرا در حالت عادی
+                initJdp();
+
+                // اجرا برای جابجایی بین صفحات با wire:navigate
+                document.addEventListener('livewire:navigated', initJdp);
+            </script>
+            @endscript
         </div>
 
         {{-- بخش فیلتر پیشرفته واحد --}}
@@ -57,6 +102,7 @@
                         <th class="p-4">تیکت / فرستنده</th>
                         <th class="p-4 text-center">واحد مقصد</th>
                         <th class="p-4 text-center">وضعیت</th>
+                        <th class="p-4 text-center">زمان انتظار</th>
                         <th class="p-4">موضوع</th>
                         <th class="p-4 text-left">عملیات</th>
                     </tr>
@@ -75,6 +121,11 @@
                             {{-- لیبل‌های وضعیت مشابه قبل --}}
                             <span class="px-2 py-1 rounded-full text-[10px] font-bold border {{ $ticket->status === 'accepted' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100' }}">
                                 {{ $ticket->status_name }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold {{ $ticket->waiting_duration['class'] }}">
+                                {{ $ticket->waiting_duration['text'] }}
                             </span>
                         </td>
                         <td class="p-4 text-sm font-medium text-gray-800">{{ $ticket->subject }}</td>

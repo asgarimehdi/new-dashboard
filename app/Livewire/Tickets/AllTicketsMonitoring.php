@@ -7,6 +7,7 @@ use App\Models\Unit;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
+use Morilog\Jalali\Jalalian;
 
 #[Layout('layouts.app')]
 class AllTicketsMonitoring extends Component
@@ -22,6 +23,17 @@ class AllTicketsMonitoring extends Component
     public $targetUnitName = '';
     public $forwardNote = '';
     public $units = []; // برای سازگاری با کد مودال کپی شده
+    public $dateFrom = '';
+    public $dateTo = '';
+    public function updatedDateFrom()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateTo()
+    {
+        $this->resetPage();
+    }
     // متد برای انتخاب واحد جهت فیلتر لیست
     public function selectUnitForFilter($id)
     {
@@ -60,7 +72,15 @@ class AllTicketsMonitoring extends Component
                     ->orWhere('ticket_code', 'like', '%' . $this->search . '%');
             });
         }
+        if ($this->dateFrom) {
+            $miladiFrom = \Morilog\Jalali\Jalalian::fromFormat('Y/m/d', $this->dateFrom)->toCarbon()->startOfDay();
+            $query->where('created_at', '>=', $miladiFrom);
+        }
 
+        if ($this->dateTo) {
+            $miladiTo = \Morilog\Jalali\Jalalian::fromFormat('Y/m/d', $this->dateTo)->toCarbon()->endOfDay();
+            $query->where('created_at', '<=', $miladiTo);
+        }
         return view('livewire.tickets.all-tickets-monitoring', [
             'tickets' => $query->latest()->paginate(15),
             'filterUnits' => $units,
