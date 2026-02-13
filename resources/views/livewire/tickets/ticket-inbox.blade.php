@@ -20,7 +20,7 @@
         <tr class="hover:bg-gray-50 transition">
             <td class="p-4">
                 <span class="font-mono text-indigo-600 block text-xs">#{{ $ticket->ticket_code }}</span>
-                <span class="text-sm font-bold text-gray-700">{{ $ticket->user?->name ?? 'کاربر سیستم' }}</span>
+                <span class="text-sm font-bold text-gray-700">{{ $ticket->user?->full_name ?? 'کاربر سیستم' }}</span>
             </td>
 
             {{-- اولویت --}}
@@ -185,7 +185,7 @@
                             <div class="absolute right-0 top-1 w-5 h-5 rounded-full bg-white border-2 border-indigo-500 flex items-center justify-center z-10 text-[10px]">📨</div>
                             <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm text-xs">
                                 <div class="flex justify-between mb-1">
-                                    <span class="font-bold">{{ $activity->user->name ?? 'کاربر سیستم' }}</span>
+                                    <span class="font-bold">{{ $activity->user->full_name ?? 'کاربر سیستم' }}</span>
                                     <span class="text-gray-400">{{ jdate($activity->created_at)->format('H:i - Y/m/d') }}</span>
                                 </div>
                                 <p class="text-gray-600">{{ $activity->description }}</p>
