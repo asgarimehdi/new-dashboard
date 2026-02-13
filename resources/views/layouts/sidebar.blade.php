@@ -23,21 +23,21 @@
 
         <nav class="mt-6 px-4 space-y-2 pb-10">
             {{-- منوی عمومی --}}
-            <x-nav-link-custom :href="route('dashboard')" :active="request()->routeIs('dashboard')" icon="home">
+            <x-nav-link-custom :href="route('dashboard')" wire:navigate :active="request()->routeIs('dashboard')" icon="home">
                 داشبورد
             </x-nav-link-custom>
 
             <div class="pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">تیکتینگ</div>
             @role('admin|superadmin')
-            <x-nav-link-custom :href="route('tickets.monitoring')" :active="request()->routeIs('tickets.monitoring')" icon="chart-bar">
+            <x-nav-link-custom :href="route('tickets.monitoring') " wire:navigate :active="request()->routeIs('tickets.monitoring')" icon="chart-bar">
                 مانیتورینگ کل تیکت‌ها
             </x-nav-link-custom>
             @endrole
-            <x-nav-link-custom :href="route('tickets.inbox')" :active="request()->routeIs('tickets.inbox')" icon="ticket">
+            <x-nav-link-custom :href="route('tickets.inbox')" wire:navigate :active="request()->routeIs('tickets.inbox')" icon="ticket">
                 صندوق تیکت‌ها
             </x-nav-link-custom>
 
-            <x-nav-link-custom :href="route('tickets.create')" :active="request()->routeIs('tickets.create')" icon="plus">
+            <x-nav-link-custom :href="route('tickets.create')" wire:navigate :active="request()->routeIs('tickets.create')" icon="plus">
                 ثبت تیکت جدید
             </x-nav-link-custom>
 
@@ -47,39 +47,39 @@
                 تنظیمات سیستمی
             </div>
 
-            <x-nav-link-custom :href="route('users.index')" :active="request()->routeIs('users.*')" icon="users">
+            <x-nav-link-custom :href="route('users.index')" wire:navigate :active="request()->routeIs('users.*')" icon="users">
                 مدیریت کاربران
             </x-nav-link-custom>
 
-            <x-nav-link-custom :href="route('roles.manager')" :active="request()->routeIs('roles.*')" icon="shield">
+            <x-nav-link-custom :href="route('roles.manager')" wire:navigate :active="request()->routeIs('roles.*')" icon="shield">
                 سطوح دسترسی
             </x-nav-link-custom>
 
             <div class="pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">ساختار سازمانی</div>
 
-            <x-nav-link-custom :href="route('units.index')" :active="request()->routeIs('units.index')" icon="office">
+            <x-nav-link-custom :href="route('units.index')" wire:navigate :active="request()->routeIs('units.index')" icon="office">
                 لیست واحدها
             </x-nav-link-custom>
 
-            <x-nav-link-custom :href="route('units.tree')" :active="request()->routeIs('units.tree')" icon="tree">
+            <x-nav-link-custom :href="route('units.tree')" wire:navigate :active="request()->routeIs('units.tree')" icon="tree">
                 درختواره واحدها
             </x-nav-link-custom>
 
-            <x-nav-link-custom :href="route('unit-types.index')" :active="request()->routeIs('unit-types.index')" icon="category">
+            <x-nav-link-custom :href="route('unit-types.index')" wire:navigate :active="request()->routeIs('unit-types.index')" icon="category">
                 انواع واحد
             </x-nav-link-custom>
 
-            <x-nav-link-custom :href="route('unit-types.hierarchy')" :active="request()->routeIs('unit-types.hierarchy')" icon="hierarchy">
+            <x-nav-link-custom :href="route('unit-types.hierarchy')" wire:navigate :active="request()->routeIs('unit-types.hierarchy')" icon="hierarchy">
                 سلسله مراتب واحدها
             </x-nav-link-custom>
 
             <div class="pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">تعاریف پایه</div>
 
-            <x-nav-link-custom :href="route('provinces.index')" :active="request()->routeIs('provinces.index')" icon="map">
+            <x-nav-link-custom :href="route('provinces.index')" wire:navigate :active="request()->routeIs('provinces.index')" icon="map">
                 مدیریت استان‌ها
             </x-nav-link-custom>
 
-            <x-nav-link-custom :href="route('cities.index')" :active="request()->routeIs('cities.index')" icon="city">
+            <x-nav-link-custom :href="route('cities.index')" wire:navigate :active="request()->routeIs('cities.index')" icon="city">
                 مدیریت شهرها
             </x-nav-link-custom>
             @endif
