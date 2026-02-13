@@ -29,12 +29,51 @@ Route::get('/', function () {
 | روت‌های تحت نظارت سیستم احراز هویت (Authenticated Routes)
 |--------------------------------------------------------------------------
 */
+use App\Models\Ticket;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+
+Route::get('/dashboard', function () {
+    $user = Auth::user();
+    $myUnitId = $user->unit_id;
+
+    // ۱. تیکت‌های ورودی: تیکت‌هایی که به واحد من فرستاده شده (unit_id)
+    $inboxQuery = Ticket::where('unit_id', $myUnitId);
+
+    // ۲. تیکت‌های خروجی: تیکت‌هایی که من خودم ایجاد کردم (user_id)
+    $outboxQuery = Ticket::where('user_id', $user->id);
+
+    $stats = [
+        // تیکت‌های ورودی که هنوز وضعیتشان 'created' یا 'forwarded' است (یعنی هنوز accepted یا rejected نشده‌اند)
+        'pending_inbox' => (clone $inboxQuery)->whereIn('status', ['created', 'forwarded'])->count(),
+        
+        // تیکت‌هایی که من فرستادم و توسط واحد مقصد 'accepted' شده‌اند
+        'accepted_outbox' => (clone $outboxQuery)->where('status', 'accepted')->count(),
+        
+        // تیکت‌هایی که من فرستادم و توسط واحد مقصد 'rejected' شده‌اند
+        'rejected_outbox' => (clone $outboxQuery)->where('status', 'rejected')->count(),
+
+        // کل کاربران سیستم (برای ویجت ادمین)
+        'total_users' => User::count(),
+
+        // ۵ تیکت آخر برای جدول فعالیت‌ها
+        'recent_tickets' => Ticket::where('unit_id', $myUnitId)
+            ->orWhere('user_id', $user->id)
+            ->with(['user', 'unit'])
+            ->latest()
+            ->take(5)
+            ->get(),
+    ];
+
+    return view('dashboard', compact('stats'));
+})->middleware(['auth', 'verified'])->name('dashboard');
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // داشبورد اصلی
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    // Route::get('/dashboard', function () {
+    //     return view('dashboard');
+    // })->name('dashboard');
+    
 
     // مدیریت پروفایل کاربر
     Route::controller(ProfileController::class)->group(function () {
