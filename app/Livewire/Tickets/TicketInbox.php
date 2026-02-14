@@ -212,20 +212,40 @@ public function openCompletionModal($id)
 }
 
 // ۳. متد نهایی تکمیل تیکت
-public function submitAction()
+public function submitAction($id = null)
 {
-    // if (!$this->showingTicketId) {
-    //     dd('آیدی تیکت پیدا نشد!'); // اگر این را دیدید یعنی آیدی پاس داده نشده
-    // }
-    // ۱. اعتبار سنجی
-    $this->validate([
-        'completionNote' => 'required|min:5',
-        'completionFiles.*' => 'nullable|file|max:5120', // حداکثر ۵ مگابایت
-    ]);
+    $finalId = $id ?? $this->showingTicketId;
+    $ticket = Ticket::findOrFail($finalId);
+if ($ticket->status !== 'accepted' && !$this->targetUnitId) {
+        $this->dispatch('swal', [
+            'title' => 'خطای منطقی',
+            'text' => 'تیکت تایید نشده را نمی‌توان مختومه کرد. لطفاً ابتدا تایید کنید یا به واحد دیگری ارجاع دهید.',
+            'icon' => 'error'
+        ]);
+        return;
+    }
+    // منطق داینامیک برای اعتبار سنجی
+    $rules = [
+        'completionFiles.*' => 'nullable|file|max:5120',
+    ];
 
-    $ticket = Ticket::findOrFail($this->showingTicketId);
+    if ($this->targetUnitId) {
+        // اگر واحد مقصد انتخاب شده (یعنی قصد ارجاع داریم)
+        // توضیحات را اختیاری می‌کنیم (یا حداقل کاراکتر را کم می‌کنیم)
+        $rules['completionNote'] = 'nullable|max:1000';
+        $actionType = 'forwarded';
+    } else {
+        // اگر واحد مقصد انتخاب نشده (یعنی قصد مختومه کردن داریم)
+        // توضیحات حتماً اجباری است
+        $rules['completionNote'] = 'required|min:5';
+        $actionType = 'completed';
+    }
 
-    // ۲. مدیریت آپلود فایل‌ها (اگر فایلی انتخاب شده باشد)
+    $this->validate($rules);
+
+    // --- ادامه عملیات ذخیره‌سازی ---
+    
+    // ثبت فایل‌ها (اگر وجود داشت)
     if ($this->completionFiles) {
         foreach ($this->completionFiles as $file) {
             $path = $file->store('attachments', 'public');
@@ -238,42 +258,31 @@ public function submitAction()
         }
     }
 
-    // ۳. تصمیم‌گیری: ارجاع یا اتمام؟
-    if ($this->targetUnitId) {
-        // سناریوی ارجاع
+    if ($actionType === 'forwarded') {
         $ticket->update([
             'unit_id' => $this->targetUnitId,
             'status' => 'forwarded'
         ]);
-
-        $ticket->activities()->create([
-            'user_id' => auth()->id(),
-            'action' => 'forwarded',
-            'description' => "ارجاع به واحد {$this->targetUnitName} - توضیحات: " . $this->completionNote,
-            'to_unit_id' => $this->targetUnitId
-        ]);
-
-        $message = 'تیکت با موفقیت ارجاع شد.';
+        
+        $desc = "تیکت ارجاع داده شد به واحد {$this->targetUnitName}. " . ($this->completionNote ? "توضیحات: {$this->completionNote}" : "");
     } else {
-        // سناریوی اتمام کار
         $ticket->update([
             'status' => 'completed',
             'completed_at' => now()
         ]);
-
-        $ticket->activities()->create([
-            'user_id' => auth()->id(),
-            'action' => 'completed',
-            'description' => "تیکت مختومه شد. گزارش نهایی: " . $this->completionNote,
-            'to_unit_id' => $ticket->unit_id
-        ]);
-
-        $message = 'تیکت با موفقیت مختومه شد.';
+        
+        $desc = "تیکت مختومه شد. گزارش نهایی: {$this->completionNote}";
     }
 
-    // ۴. بازنشانی مقادیر و بستن مودال
-    $this->reset(['isCompletionModalOpen', 'completionNote', 'completionFiles', 'targetUnitId', 'targetUnitName', 'unitSearch']);
-    $this->dispatch('swal', ['title' => $message, 'icon' => 'success']);
+    $ticket->activities()->create([
+        'user_id' => auth()->id(),
+        'action' => $actionType,
+        'description' => $desc,
+        'to_unit_id' => $this->targetUnitId ?? $ticket->unit_id
+    ]);
+
+    $this->reset(['isCompletionModalOpen', 'completionNote', 'completionFiles', 'targetUnitId', 'targetUnitName']);
+    $this->dispatch('swal', ['title' => 'عملیات با موفقیت انجام شد', 'icon' => 'success']);
 }
 public function removeFile($index)
 {
