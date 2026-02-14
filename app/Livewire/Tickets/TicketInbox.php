@@ -8,12 +8,19 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
+use Livewire\WithFileUploads;
+
 
 #[Layout('layouts.app')]
 class TicketInbox extends Component
 {
     use WithPagination;
+    // داخل کلاس حتما این تریت باشد
+    use WithFileUploads;
 
+    public $isCompletionModalOpen = false; // برای مدیریت مودال کوچک تایید نهایی
+    public $completionNote = '';
+    public $completionFiles = [];
     public $search = '';
     public $unitSearch = '';
     public $targetUnitId = null;
@@ -192,4 +199,50 @@ class TicketInbox extends Component
             $this->closeDetail();
         }
     }
+    // ۲. باز کردن مودال کوچک برای اتمام کار
+public function openCompletionModal()
+{
+    $this->reset(['completionNote', 'completionFiles']);
+    $this->isCompletionModalOpen = true;
+}
+
+// ۳. متد نهایی تکمیل تیکت
+public function completeTicket()
+{
+    $ticket = $this->showingTicket;
+
+    $this->validate([
+        'completionNote' => 'required|min:5',
+        'completionFiles.*' => 'mimes:jpg,jpeg,png,pdf,zip,rar|max:5120'
+    ]);
+
+    // تغییر وضعیت تیکت
+    $ticket->update(['status' => 'completed']);
+
+    // ثبت فعالیت اتمام
+    $ticket->activities()->create([
+        'user_id' => auth()->id(),
+        'action' => 'completed',
+        'description' => 'تیکت تکمیل شد. گزارش: ' . $this->completionNote,
+        'to_unit_id' => $ticket->unit_id,
+        'is_internal' => false,
+    ]);
+
+    // ثبت فایل‌های خروجی (با همان ساختار CreateTicket)
+    if ($this->completionFiles) {
+        foreach ($this->completionFiles as $file) {
+            $path = $file->store('attachments', 'public');
+            $ticket->attachments()->create([
+                'user_id' => auth()->id(),
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+    }
+
+    $this->isCompletionModalOpen = false;
+    $this->closeDetail(); // بستن مودال اصلی
+    $this->dispatch('swal', ['title' => 'خسته نباشید! تیکت با موفقیت بسته شد.', 'icon' => 'success']);
+}
 }

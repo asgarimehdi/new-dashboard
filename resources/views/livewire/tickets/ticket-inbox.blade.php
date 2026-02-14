@@ -91,6 +91,7 @@
                         <th class="p-4 text-center">وضعیت</th>
                         <th class="p-4 text-center">زمان انتظار</th>
                         <th class="p-4 text-right">موضوع</th>
+                        <th class="p-4 text-center">در انتظار تایید...</th>
                         <th class="p-4 text-left">عملیات</th>
                     </tr>
                 </thead>
@@ -140,7 +141,15 @@
                         <td class="p-4">
                             <div class="text-sm font-bold text-gray-800">{{ $ticket->subject }}</div>
                         </td>
-
+                        <td class="p-4 text-center">
+                            @if(in_array($ticket->status, ['created', 'pending']))
+                            <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
+                                {{ $ticket->unit?->name ?? '---' }}
+                            </span>
+                            @else
+                            <span class="text-xs text-gray-400">تایید شده</span>
+                            @endif
+                        </td>
                         <td class="p-4 text-left flex items-center justify-end gap-2">
                             {{-- نمایش نام مسئول (تست رابطه assignee) --}}
                             @if($ticket->current_assignee_id)
@@ -168,6 +177,13 @@
                                 مشاهده و ارجاع
                             </button>
                             @endif
+                            {{-- دکمه تکمیل: فقط اگر وضعیت accepted باشد --}}
+                            @if($ticket->status === 'accepted')
+                            <button wire:click="openCompletionModal"
+                                class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-sm font-bold transition-all">
+                                اعلام اتمام کار و بستن تیکت
+                            </button>
+                            @endif
                         </td>
                     </tr>
                     @empty
@@ -180,7 +196,35 @@
             <div class="p-4">{{ $tickets->links() }}</div>
         </div>
     </div>
+    @if($isCompletionModalOpen)
+    <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="p-4 border-b bg-emerald-50 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-emerald-800">گزارش اتمام کار</h3>
+                <button wire:click="$set('isCompletionModalOpen', false)" class="text-gray-400 hover:text-red-500">×</button>
+            </div>
 
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-2">توضیحات نهایی کارشناس:</label>
+                    <textarea wire:model="completionNote" class="w-full border-gray-200 rounded-xl p-3 text-sm focus:ring-emerald-500" rows="3" placeholder="کارهای انجام شده را اینجا بنویسید..."></textarea>
+                    @error('completionNote') <span class="text-red-500 text-[10px]">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-2">آپلود مستندات خروجی (اختیاری):</label>
+                    <input type="file" wire:model="completionFiles" multiple class="text-xs w-full border border-dashed p-2 rounded-lg">
+                    <div wire:loading wire:target="completionFiles" class="text-[10px] text-blue-600 animate-pulse">در حال آپلود...</div>
+                </div>
+
+                <button wire:click="completeTicket"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-emerald-100 transition-all">
+                    ثبت نهایی و بستن تیکت
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
     {{-- مودال جزئیات و ارجاع --}}
     @if($showingTicket)
     <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
