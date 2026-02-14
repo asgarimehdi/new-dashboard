@@ -212,113 +212,106 @@
         </div>
     </div>
     {{-- مودال ۲: عملیات (ارجاع / بستن) --}}
-    @if($isCompletionModalOpen)
-    <input type="hidden" wire:model="showingTicketId">
-    <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/50">
+ {{-- مودال ۲: عملیات (ارجاع / بستن) --}}
+@if($isCompletionModalOpen)
+<div class="fixed inset-0 bg-gray-900/70 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+    {{-- اضافه کردن flex flex-col و محدود کردن ارتفاع کل مودال --}}
+    <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden border border-white/50">
+        
+        {{-- هدر (ثابت) --}}
+        <div class="p-5 text-center border-b relative {{ $targetUnitId ? 'bg-indigo-50' : 'bg-emerald-50' }} shrink-0">
+            <h3 class="text-base font-black {{ $targetUnitId ? 'text-indigo-800' : 'text-emerald-800' }}">
+                {{ $targetUnitId ? '🚀 عملیات ارجاع تیکت' : '✅ اعلام اتمام فعالیت' }}
+            </h3>
+            <button wire:click="$set('isCompletionModalOpen', false)" class="absolute top-4 left-4 text-gray-400 hover:text-red-500 text-2xl">&times;</button>
+        </div>
 
-            {{-- هدر داینامیک --}}
-            <div class="p-6 text-center border-b relative {{ $targetUnitId ? 'bg-indigo-50' : 'bg-emerald-50' }} transition-colors">
-                <h3 class="text-lg font-black {{ $targetUnitId ? 'text-indigo-800' : 'text-emerald-800' }}">
-                    {{ $targetUnitId ? '🚀 عملیات ارجاع تیکت' : '✅ اعلام اتمام فعالیت' }}
-                </h3>
-                <p class="text-[11px] mt-1 text-gray-500">لطفاً مستندات و گزارش نهایی را وارد نمایید</p>
-                <button wire:click="$set('isCompletionModalOpen', false)" class="absolute top-4 left-4 text-gray-400 hover:text-red-500 text-2xl">&times;</button>
-            </div>
-
-            <div class="p-8 space-y-6" dir="rtl">
-
-                {{-- فیلد جستجوی واحد مقصد --}}
-                <div class="space-y-2">
-                    <label class="block text-xs font-black text-gray-600 mr-2">ارجاع به واحد دیگر (اختیاری):</label>
-                    <div class="relative group">
-                        <input type="text" wire:model.live="unitSearch"
-                            class="w-full bg-gray-50 border-gray-200 rounded-2xl px-4 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all"
-                            placeholder="نام واحد مقصد را تایپ کنید...">
-
-                        @if(!empty($units))
-                        <div class="absolute z-[80] w-full bg-white shadow-2xl rounded-2xl mt-2 border border-gray-100 max-h-48 overflow-y-auto overflow-x-hidden p-2">
-                            @foreach($units as $u)
-                            <button wire:click="selectTargetUnit({{ $u->id }}, '{{ $u->name }}')"
-                                class="w-full text-right px-4 py-3 hover:bg-indigo-50 rounded-xl text-xs transition-colors mb-1 last:mb-0 border-b border-gray-50 last:border-0 font-bold text-gray-700">
-                                {{ $u->name }}
-                            </button>
-                            @endforeach
-                        </div>
-                        @endif
-                    </div>
-
-                    @if($targetUnitId)
-                    <div class="flex items-center justify-between bg-indigo-600 text-white px-4 py-2 rounded-xl mt-2 animate-bounce-short">
-                        <span class="text-xs font-bold italic">ارسال به: {{ $targetUnitName }}</span>
-                        <button wire:click="$set('targetUnitId', null)" class="text-[10px] bg-white/20 px-2 py-1 rounded-lg hover:bg-white/40">لغو ارجاع</button>
-                    </div>
-                    @endif
-                </div>
-
-                {{-- فیلد توضیحات --}}
-                <div class="space-y-2">
-                    <label class="block text-xs font-black text-gray-600 mr-2">
-                        {{ $targetUnitId ? 'علت یا توضیحات ارجاع (اختیاری):' : 'گزارش نهایی جهت بستن تیکت (الزامی):' }}
-                    </label>
-                    <textarea wire:model="completionNote"
-                        class="w-full bg-gray-50 border-gray-200 rounded-2xl p-4 text-sm focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all"
-                        rows="3" placeholder="توضیحات لازم جهت بستن یا ارجاع..."></textarea>
-                    @error('completionNote') <span class="text-red-500 text-[10px] font-bold">{{ $message }}</span> @enderror
-                </div>
-
-                {{-- بخش آپلود فایل - بازطراحی شده شبیه صفحه ایجاد تیکت --}}
-                <div class="space-y-2">
-                    <label class="block text-xs font-black text-gray-600 mr-2">مستندات پیوست:</label>
-                    <div class="relative group cursor-pointer">
-                        <input type="file" wire:model="completionFiles" multiple
-                            class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                        <div class="border-2 border-dashed border-gray-200 group-hover:border-emerald-400 group-hover:bg-emerald-50 rounded-2xl p-6 transition-all flex flex-col items-center justify-center gap-2">
-                            <div class="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                                <svg class="w-6 h-6 text-gray-400 group-hover:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                            </div>
-                            <span class="text-[11px] font-bold text-gray-500 group-hover:text-emerald-700">انتخاب فایل‌ها یا کشیدن به اینجا</span>
-                            <div wire:loading wire:target="completionFiles" class="text-[10px] text-blue-600 font-bold animate-pulse">در حال آپلود...</div>
-                        </div>
-                    </div>
-                    {{-- پیش‌نمایش فایل‌های انتخاب شده --}}
-                    @if($completionFiles)
-                    <div class="flex flex-wrap gap-2 mt-2">
-                        @foreach($completionFiles as $index => $file)
-                        <div class="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-lg border text-[10px] text-gray-600">
-                            <span class="truncate max-w-[100px]">{{ $file->getClientOriginalName() }}</span>
-                            <button type="button" wire:click="removeFile({{ $index }})" class="text-red-500 font-bold">×</button>
-                        </div>
+        {{-- بدنه مودال (بخش اسکرول‌شونده) --}}
+        <div class="p-6 overflow-y-auto custom-scrollbar space-y-5 flex-1" dir="rtl">
+            
+            {{-- فیلد جستجوی واحد --}}
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-gray-600 mr-2">ارجاع به واحد دیگر (اختیاری):</label>
+                <div class="relative group">
+                    <input type="text" wire:model.live="unitSearch" 
+                           class="w-full bg-gray-50 border-gray-200 rounded-2xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-indigo-100 transition-all" 
+                           placeholder="جستجوی واحد مقصد...">
+                    
+                    @if(!empty($units))
+                    <div class="absolute z-[80] w-full bg-white shadow-2xl rounded-2xl mt-1 border border-gray-100 max-h-40 overflow-y-auto p-2">
+                        @foreach($units as $u)
+                        <button wire:click="selectTargetUnit({{ $u->id }}, '{{ $u->name }}')" 
+                                class="w-full text-right px-4 py-2 hover:bg-indigo-50 rounded-xl text-xs font-bold text-gray-700">
+                            {{ $u->name }}
+                        </button>
                         @endforeach
                     </div>
                     @endif
                 </div>
 
-                {{-- دکمه نهایی داینامیک --}}
-                {{-- دکمه عملیات نهایی در مودال --}}
-                @php
-                // بررسی اینکه آیا تیکت در وضعیت تایید شده قرار دارد یا خیر
-                $isAccepted = $showingTicket?->status === 'accepted';
-                @endphp
-
-                @if(!$isAccepted && !$targetUnitId)
-                {{-- اگر تایید نشده و واحدی هم انتخاب نشده، دکمه را غیرفعال یا هشدار دهنده می‌کنیم --}}
-                <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-amber-700 text-[11px] font-bold text-center">
-                    ⚠️ این تیکت هنوز تایید نشده است. جهت بستن تیکت ابتدا باید آن را تایید کنید یا به واحد دیگری ارجاع دهید.
+                @if($targetUnitId)
+                <div class="flex items-center justify-between bg-indigo-600 text-white px-4 py-2 rounded-xl mt-1">
+                    <span class="text-[11px] font-bold">مقصد: {{ $targetUnitName }}</span>
+                    <button wire:click="$set('targetUnitId', null)" class="text-[10px] bg-white/20 px-2 py-0.5 rounded-lg">لغو</button>
                 </div>
-                @else
-                <button wire:click="submitAction({{ $showingTicketId }})"
-                    class="w-full py-4 rounded-2xl text-sm font-black text-white shadow-xl transition-all hover:scale-[1.02] active:scale-95
-            {{ $targetUnitId ? 'bg-indigo-600 shadow-indigo-200' : 'bg-emerald-600 shadow-emerald-200' }}">
-                    {{ $targetUnitId ? 'تایید و ارجاع تیکت' : 'ثبت گزارش و مختومه کردن تیکت' }}
-                </button>
+                @endif
+            </div>
+
+            {{-- فیلد توضیحات --}}
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-gray-600 mr-2">
+                    {{ $targetUnitId ? 'علت یا توضیحات ارجاع (اختیاری):' : 'گزارش نهایی کارشناس (اجباری):' }}
+                </label>
+                <textarea wire:model="completionNote" 
+                          class="w-full bg-gray-50 border-gray-200 rounded-2xl p-3 text-sm focus:ring-4 focus:ring-emerald-100 transition-all" 
+                          rows="3" placeholder="توضیحات..."></textarea>
+                @error('completionNote') <span class="text-red-500 text-[10px] font-bold">{{ $message }}</span> @enderror
+            </div>
+
+            {{-- بخش آپلود فایل --}}
+            <div class="space-y-2">
+                <label class="block text-xs font-black text-gray-600 mr-2">مستندات پیوست:</label>
+                <div class="relative border-2 border-dashed border-gray-200 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-emerald-50/50 transition-all">
+                    <input type="file" wire:model="completionFiles" multiple class="absolute inset-0 opacity-0 cursor-pointer">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    <span class="text-[10px] font-bold text-gray-500">کشیدن یا انتخاب فایل</span>
+                </div>
+
+                {{-- لیست فایل‌ها --}}
+                @if($completionFiles)
+                <div class="space-y-2 mt-2">
+                    @foreach($completionFiles as $index => $file)
+                    <div class="flex items-center justify-between bg-gray-50 p-2 rounded-xl border border-gray-100">
+                        <span class="text-[10px] text-gray-600 truncate max-w-[200px]">{{ $file->getClientOriginalName() }}</span>
+                        <button type="button" wire:click="removeFile({{ $index }})" class="text-red-500 hover:bg-red-50 p-1 rounded-md">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    @endforeach
+                </div>
                 @endif
             </div>
         </div>
+
+        {{-- فوتر (ثابت در پایین) --}}
+        <div class="p-5 border-t bg-gray-50 shrink-0">
+            @php $isAccepted = $showingTicket?->status === 'accepted'; @endphp
+            
+            @if(!$isAccepted && !$targetUnitId)
+                <div class="text-center bg-amber-100 text-amber-800 p-3 rounded-xl text-[10px] font-bold">
+                    ⚠️ تیکت تایید نشده را فقط می‌توانید ارجاع دهید.
+                </div>
+            @else
+                <button wire:click="submitAction({{ $showingTicketId }})" 
+                        class="w-full py-3.5 rounded-2xl text-sm font-black text-white shadow-lg transition-all 
+                        {{ $targetUnitId ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100' }}">
+                    {{ $targetUnitId ? 'تایید و ارجاع تیکت' : 'ثبت نهایی و بستن تیکت' }}
+                </button>
+            @endif
+        </div>
     </div>
-    @endif
+</div>
+@endif
     {{-- مودال جزئیات --}}
     {{-- مودال ۱: مشاهده جزئیات و تاریخچه (فقط خواندنی) --}}
     @if($showingTicket)
