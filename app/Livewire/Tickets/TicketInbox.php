@@ -9,11 +9,13 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\DB;
 use Livewire\WithFileUploads;
-
+use Livewire\Attributes\Locked;
 
 #[Layout('layouts.app')]
+ #[Locked]
 class TicketInbox extends Component
 {
+   
     use WithPagination;
     // داخل کلاس حتما این تریت باشد
     use WithFileUploads;
@@ -30,6 +32,7 @@ class TicketInbox extends Component
     public $dateFrom = '';
     public $dateTo = '';
     public $currentTab = 'pending'; // تب پیش‌فرض: در انتظار بررسی
+    public $showingTicketId;
     public function updatedDateFrom()
     {
         $this->resetPage();
@@ -200,35 +203,29 @@ class TicketInbox extends Component
         }
     }
     // ۲. باز کردن مودال کوچک برای اتمام کار
-public function openCompletionModal()
+public function openCompletionModal($id)
 {
-    $this->reset(['completionNote', 'completionFiles']);
+    $this->showingTicketId = $id;
+    // برای اطمینان از اینکه آبجکت تیکت هم در مودال در دسترس باشد
+    $this->showingTicket = Ticket::find($id); 
     $this->isCompletionModalOpen = true;
 }
 
 // ۳. متد نهایی تکمیل تیکت
-public function completeTicket()
+public function submitAction()
 {
-    $ticket = $this->showingTicket;
-
+    // if (!$this->showingTicketId) {
+    //     dd('آیدی تیکت پیدا نشد!'); // اگر این را دیدید یعنی آیدی پاس داده نشده
+    // }
+    // ۱. اعتبار سنجی
     $this->validate([
         'completionNote' => 'required|min:5',
-        'completionFiles.*' => 'mimes:jpg,jpeg,png,pdf,zip,rar|max:5120'
+        'completionFiles.*' => 'nullable|file|max:5120', // حداکثر ۵ مگابایت
     ]);
 
-    // تغییر وضعیت تیکت
-    $ticket->update(['status' => 'completed']);
+    $ticket = Ticket::findOrFail($this->showingTicketId);
 
-    // ثبت فعالیت اتمام
-    $ticket->activities()->create([
-        'user_id' => auth()->id(),
-        'action' => 'completed',
-        'description' => 'تیکت تکمیل شد. گزارش: ' . $this->completionNote,
-        'to_unit_id' => $ticket->unit_id,
-        'is_internal' => false,
-    ]);
-
-    // ثبت فایل‌های خروجی (با همان ساختار CreateTicket)
+    // ۲. مدیریت آپلود فایل‌ها (اگر فایلی انتخاب شده باشد)
     if ($this->completionFiles) {
         foreach ($this->completionFiles as $file) {
             $path = $file->store('attachments', 'public');
@@ -241,8 +238,45 @@ public function completeTicket()
         }
     }
 
-    $this->isCompletionModalOpen = false;
-    $this->closeDetail(); // بستن مودال اصلی
-    $this->dispatch('swal', ['title' => 'خسته نباشید! تیکت با موفقیت بسته شد.', 'icon' => 'success']);
+    // ۳. تصمیم‌گیری: ارجاع یا اتمام؟
+    if ($this->targetUnitId) {
+        // سناریوی ارجاع
+        $ticket->update([
+            'unit_id' => $this->targetUnitId,
+            'status' => 'forwarded'
+        ]);
+
+        $ticket->activities()->create([
+            'user_id' => auth()->id(),
+            'action' => 'forwarded',
+            'description' => "ارجاع به واحد {$this->targetUnitName} - توضیحات: " . $this->completionNote,
+            'to_unit_id' => $this->targetUnitId
+        ]);
+
+        $message = 'تیکت با موفقیت ارجاع شد.';
+    } else {
+        // سناریوی اتمام کار
+        $ticket->update([
+            'status' => 'completed',
+            'completed_at' => now()
+        ]);
+
+        $ticket->activities()->create([
+            'user_id' => auth()->id(),
+            'action' => 'completed',
+            'description' => "تیکت مختومه شد. گزارش نهایی: " . $this->completionNote,
+            'to_unit_id' => $ticket->unit_id
+        ]);
+
+        $message = 'تیکت با موفقیت مختومه شد.';
+    }
+
+    // ۴. بازنشانی مقادیر و بستن مودال
+    $this->reset(['isCompletionModalOpen', 'completionNote', 'completionFiles', 'targetUnitId', 'targetUnitName', 'unitSearch']);
+    $this->dispatch('swal', ['title' => $message, 'icon' => 'success']);
+}
+public function removeFile($index)
+{
+    array_splice($this->completionFiles, $index, 1);
 }
 }

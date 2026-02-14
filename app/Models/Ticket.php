@@ -51,7 +51,7 @@ class Ticket extends Model
             'created' => 'جدید (واحد)',
             'forwarded' => 'ارجاع شده',
             'accepted' => 'در حال پیگیری',
-            'closed' => 'پایان یافته',
+            'completed' => 'پایان یافته',
             'rejected' => 'رد شده',
             default => 'نامشخص',
         };
