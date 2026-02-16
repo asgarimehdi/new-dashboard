@@ -52,6 +52,25 @@ class TicketInbox extends Component
     public $viewMode = 'received';
     public $statusFilter = 'pending'; // مقدار پیش‌فرض
 
+    public function closeAllModals()
+    {
+        // بستن مودال عملیات
+        $this->isCompletionModalOpen = false;
+
+        // بستن مودال تاریخچه/جزئیات
+        $this->showingTicket = null;
+        $this->showingTicketId = null;
+
+        // ریست کردن فیلدها برای استفاده بعدی
+        $this->reset([
+            'completionNote',
+            'completionFiles',
+            'targetUnitId',
+            'targetUnitName',
+            'unitSearch',
+            
+        ]);
+    }
     public function render()
     {
         $user = auth()->user();
@@ -114,7 +133,7 @@ class TicketInbox extends Component
     public function closeDetail()
     {
         $this->showingTicket = null;
-        $this->reset(['targetUnitId', 'targetUnitName', 'unitSearch', 'forwardNote']);
+        $this->reset(['targetUnitId', 'showingTicket', 'targetUnitName', 'unitSearch', 'forwardNote']);
     }
 
     public function selectTargetUnit($id, $name)
@@ -292,7 +311,7 @@ class TicketInbox extends Component
             DB::commit();
 
             // ۸. بازنشانی فرم و بستن مودال
-            $this->reset(['isCompletionModalOpen','showingTicket', 'completionNote', 'completionFiles', 'targetUnitId', 'targetUnitName', 'unitSearch']);
+            $this->reset(['isCompletionModalOpen', 'showingTicket', 'completionNote', 'completionFiles', 'targetUnitId', 'targetUnitName', 'unitSearch']);
 
             // ارسال پیام موفقیت (در صورت استفاده از SweetAlert یا پیام متنی)
             $this->dispatch('swal', [
