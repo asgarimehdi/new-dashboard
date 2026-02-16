@@ -145,7 +145,9 @@
                             @endif
                         </td>
                         <td class="p-4">
-                            <div class="text-sm font-bold text-gray-800">{{ $ticket->subject }}</div>
+                            <div class="text-sm font-bold text-gray-800" title="{{ $ticket->subject }}">
+                                {{ str($ticket->subject)->limit(15, '...') }}
+                            </div>
                         </td>
                         <td class="p-4 text-center">
                             @if(in_array($ticket->status, ['created', 'forwarded']))
@@ -165,40 +167,61 @@
                             @endif
                         </td>
                         <td class="p-4 text-left flex items-center justify-end gap-2">
-                            {{-- نمایش نام مسئول (تست رابطه assignee) --}}
-                            @if($ticket->current_assignee_id)
-                            <span class="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border">
+                            <div class="flex items-center justify-center gap-1">
+                                {{-- نمایش نام مسئول (تست رابطه assignee) --}}
+                                @if($ticket->current_assignee_id)
+                                <!-- <span class="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border">
                                 در کارتابل: <b>{{ $ticket->assignee?->full_name ?? 'خطا در رابطه' }}</b>
-                            </span>
-                            @endif
+                            </span> -->
+                                @endif
 
 
 
-                            {{-- دکمه تایید و رد فقط برای تیکت‌های پذیرفته نشده --}}
-                            @if($ticket->status !== 'accepted' &&
-                            $ticket->status !== 'rejected'&&
-                            $ticket->status !== 'completed')
-                            <button wire:click="acceptTicket({{ $ticket->id }})" class="bg-green-50 text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100">
-                                تایید
-                            </button>
-
-                            <button onclick="confirm('آیا از رد تیکت اطمینان دارید؟') || event.stopImmediatePropagation()"
-                                wire:click="rejectTicket({{ $ticket->id }})"
-                                class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">
-                                رد
-                            </button>
-
-                            @endif
-                            <button wire:click="showTicket({{ $ticket->id }})" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100">
-                                تاریخچه
-                            </button>
+                                {{-- دکمه تایید و رد فقط برای تیکت‌های پذیرفته نشده --}}
+                                @if($ticket->status !== 'accepted' &&
+                                $ticket->status !== 'rejected'&&
+                                $ticket->status !== 'completed')
+                                <button wire:click="acceptTicket({{ $ticket->id }})"
+                                    class="group relative p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                                    title="تایید و شروع کار">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">تایید</span>
+                                </button>
 
 
-                            <button wire:click="openCompletionModal({{ $ticket->id }})"
-                                class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-sm font-bold transition-all">
-                                ارجاع یا بستن
-                            </button>
+                                <button onclick="confirm('آیا از رد تیکت اطمینان دارید؟') || event.stopImmediatePropagation()"
+                                    wire:click="rejectTicket({{ $ticket->id }})"
+                                    class="group relative p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                    title="عدم تایید / رد">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">رد تیکت</span>
+                                </button>
+                                @endif
+                                <button wire:click="showTicket({{ $ticket->id }})"
+                                    class="group relative p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                    title="مشاهده جزئیات و تاریخچه">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                    <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">جزئیات</span>
+                                </button>
 
+                                @if($ticket->status === 'accepted')
+                                <button wire:click="openCompletionModal({{ $ticket->id }})"
+                                    class="group relative p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                                    title="ارجاع یا اتمام کار">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                    <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">عملیات</span>
+                                </button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @empty
