@@ -35,7 +35,7 @@
 
     {{-- محتوای اصلی سمت چپ --}}
     <div class="flex-1 flex flex-col min-w-0">
-        @include('layouts.navigation')
+      {{--   @include('layouts.navigation')--}} 
 
         @if (isset($header))
             <header class="bg-white shadow">
