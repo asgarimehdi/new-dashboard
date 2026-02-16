@@ -28,29 +28,32 @@
     }
 </style>
 </head>
-<body class="bg-gray-100 font-sans">
-<div class="min-h-screen bg-gray-100 flex">
-    {{-- سایدبار --}}
-    @include('layouts.sidebar')
+<body class="antialiased font-sans">
+    <div class="min-h-screen bg-[#f1f5f9] flex overflow-x-hidden">
+        
+        {{-- سایدبار --}}
+        @include('layouts.sidebar')
 
-    {{-- محتوای اصلی سمت چپ --}}
-    <div class="flex-1 flex flex-col min-w-0">
-      {{--   @include('layouts.navigation')--}} 
+        {{-- محتوای اصلی --}}
+        <div class="flex-1 flex flex-col min-w-0">
+            
+            @if (isset($header))
+                <header class="bg-white/70 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-30">
+                    <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+                        {{ $header }}
+                    </div>
+                </header>
+            @endif
 
-        @if (isset($header))
-            <header class="bg-white shadow">
-                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                    {{ $header }}
-                </div>
-            </header>
-        @endif
-
-        <main class="p-6">
-            {{ $slot }}
-        </main>
+            <main class="p-4 md:p-8">
+                {{ $slot }}
+            </main>
+        </div>
     </div>
-</div>
+    
     @livewireScripts
+    {{-- بقیه اسکریپت‌ها --}}
+
  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener('livewire:init', () => {

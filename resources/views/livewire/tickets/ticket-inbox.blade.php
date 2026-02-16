@@ -211,7 +211,7 @@
                                     <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">جزئیات</span>
                                 </button>
 
-                                @if($ticket->status === 'accepted')
+                                @if($ticket->status !== 'completed'||$ticket->status !== 'rejected')
                                 <button wire:click="openCompletionModal({{ $ticket->id }})"
                                     class="group relative p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                                     title="ارجاع یا اتمام کار">
