@@ -211,7 +211,7 @@
                                     <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">جزئیات</span>
                                 </button>
 
-                                @if($ticket->status !== 'completed'||$ticket->status !== 'rejected')
+                                @if($ticket->status !== 'completed' && $ticket->status !== 'rejected')
                                 <button wire:click="openCompletionModal({{ $ticket->id }})"
                                     class="group relative p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                                     title="ارجاع یا اتمام کار">
@@ -221,6 +221,7 @@
                                     <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">عملیات</span>
                                 </button>
                                 @endif
+
                             </div>
                         </td>
                     </tr>
@@ -342,8 +343,7 @@
     </div>
     @endif
     {{-- مودال جزئیات --}}
-    {{-- مودال ۱: مشاهده جزئیات و تاریخچه (فقط خواندنی) --}}
-    @if($showingTicket)
+   @if($showingTicket)
     <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-white/20">
             {{-- هدر --}}
@@ -363,27 +363,7 @@
                     <p class="text-gray-700 leading-relaxed text-sm pt-2">{{ $showingTicket->content }}</p>
                 </div>
 
-                {{-- ضمیمه‌ها --}}
-                @if($showingTicket->attachments->count() > 0)
-                <div>
-                    <h4 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 pr-2 border-r-4 border-indigo-500">فایل‌های پیوست</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        @foreach($showingTicket->attachments as $file)
-                        <div class="group flex items-center p-3 border border-gray-100 rounded-2xl bg-white hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                            </div>
-                            <span class="text-xs truncate flex-1 px-3 text-gray-600">{{ $file->name }}</span>
-                            <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" class="text-xs font-bold text-indigo-600 px-3 py-1 bg-indigo-50 rounded-lg hover:bg-indigo-100">دریافت</a>
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-                @endif
-
-                {{-- تاریخچه --}}
+                {{-- تاریخچه و پیگیری‌ها --}}
                 <div>
                     <h4 class="text-sm font-bold text-gray-800 mb-6 flex items-center gap-2 pr-2 border-r-4 border-amber-500">تاریخچه و پیگیری‌ها</h4>
                     <div class="relative space-y-6 before:absolute before:right-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-indigo-500 before:to-gray-100">
@@ -394,7 +374,35 @@
                             </div>
                             <div class="bg-gray-50/80 backdrop-blur-sm p-4 rounded-2xl border border-gray-100 shadow-sm group hover:bg-white hover:border-indigo-200 transition-all">
                                 <div class="flex justify-between items-center mb-2 text-[11px]">
-                                    <span class="font-black text-gray-800 bg-white px-2 py-1 rounded-lg shadow-sm border">{{ $activity->user->full_name }}</span>
+                                    <div class="flex items-center gap-3">
+                                        <span class="font-black text-gray-800 bg-white px-2 py-1 rounded-lg shadow-sm border">{{ $activity->user->full_name }}</span>
+                                        
+                                        {{-- نمایش فایل‌های پیوست مربوط به این فعالیت به صورت سنجاق --}}
+                                        @php 
+                                            // فرض بر این است که فایل‌ها یا به activity_id متصل هستند 
+                                            // یا اگر اولین رکورد است، فایل‌های اصلی تیکت نشان داده شود
+                                            $attachments = $activity->attachments ?? collect();
+                                            if($loop->last && $showingTicket->attachments->where('activity_id', null)->count() > 0) {
+                                                $attachments = $showingTicket->attachments->where('activity_id', null);
+                                            }
+                                        @endphp
+
+                                        @if($attachments->count() > 0)
+                                        <div class="flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">
+                                            @foreach($attachments as $file)
+                                            <a href="{{ asset('storage/' . $file->file_path) }}" 
+                                               target="_blank" 
+                                               title="{{ $file->name }}" 
+                                               class="text-indigo-600 hover:text-indigo-800 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                                </svg>
+                                            </a>
+                                            @endforeach
+                                            <span class="text-[9px] font-bold text-indigo-400 mr-1">{{ $attachments->count() }} فایل</span>
+                                        </div>
+                                        @endif
+                                    </div>
                                     <span class="text-gray-400 font-mono">{{ jdate($activity->created_at)->format('H:i - Y/m/d') }}</span>
                                 </div>
                                 <p class="text-xs text-gray-600 leading-6">{{ $activity->description }}</p>
