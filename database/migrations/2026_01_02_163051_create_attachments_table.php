@@ -18,6 +18,7 @@ public function up()
     $table->string('file_path');
     $table->string('file_name');
     $table->integer('file_size');
+    $table->foreignId('activity_id')->nullable()->constrained('task_activities')->cascadeOnDelete();
     $table->timestamps();
 });
 }

@@ -51,63 +51,64 @@ class CreateTicket extends Component
         }
     }
 
-    public function saveTicket()
-    {
-        $this->validate([
-            'unit_id' => [
-                'required',
-                'exists:units,id', // مطمئن شویم واحد در دیتابیس وجود دارد
-                function ($attribute, $value, $fail) {
-                    if ($value == auth()->user()->unit_id) {
-                        $fail('شما نمی‌توانید به واحد خودتان تیکت ارسال کنید.');
-                    }
-                },
-            ],
-            'subject' => 'required|string|min:5|max:255',
-            'content' => 'required|string|min:10',
-        ]);
+   public function saveTicket()
+{
+    $this->validate([
+        'unit_id' => [
+            'required',
+            'exists:units,id',
+            function ($attribute, $value, $fail) {
+                if ($value == auth()->user()->unit_id) {
+                    $fail('شما نمی‌توانید به واحد خودتان تیکت ارسال کنید.');
+                }
+            },
+        ],
+        'subject' => 'required|string|min:5|max:255',
+        'content' => 'required|string|min:10',
+    ]);
 
-        $ticketCode = 'TK-' . strtoupper(substr(uniqid(), -6));
+    $ticketCode = 'TK-' . strtoupper(substr(uniqid(), -6));
 
-        // ایجاد تیکت بر اساس فیلدهای جدید
-        $ticket = Ticket::create([
-            'ticket_code' => $ticketCode,
-            'user_id' => auth()->id(), // الزامی بودن کاربر لاگین شده توسط بریز
-            'unit_id' => $this->unit_id,
-            'subject' => $this->subject,
-            'content' => $this->content,
-            'priority' => $this->priority,
-            'status' => 'created', // تغییر از open به created
-            'current_assignee_id' => null, // در ابتدا شخص خاصی مسئول نیست و فقط واحد مشخص است
-        ]);
+    // ۱. ایجاد تیکت
+    $ticket = Ticket::create([
+        'ticket_code' => $ticketCode,
+        'user_id' => auth()->id(),
+        'unit_id' => $this->unit_id,
+        'subject' => $this->subject,
+        'content' => $this->content,
+        'priority' => $this->priority,
+        'status' => 'created',
+        'current_assignee_id' => null,
+    ]);
 
-        // ثبت در جدول فعالیت‌ها (بر اساس ساختار دقیق شما)
-        $ticket->activities()->create([
-            'user_id' => auth()->id(),
-            'action' => 'created',
-            'description' => 'تیکت ایجاد شد و به واحد ' . $ticket->unit->name . ' اختصاص یافت.',
-            'to_unit_id' => $this->unit_id,
-            'is_internal' => false,
-        ]);
+    // ۲. ابتدا ایجاد فعالیت (تا ID آن را داشته باشیم)
+    $initialActivity = $ticket->activities()->create([
+        'user_id' => auth()->id(),
+        'action' => 'created',
+        'description' => 'تیکت ایجاد شد و به واحد ' . $ticket->unit->name . ' اختصاص یافت.',
+        'to_unit_id' => $this->unit_id,
+        'is_internal' => false,
+    ]);
 
-        // ثبت فایل‌ها در جدول پیوست‌ها
-        if ($this->files) {
-            foreach ($this->files as $file) {
-                $path = $file->store('attachments', 'public');
-                $ticket->attachments()->create([
-                    'user_id' => auth()->id(),
-                    'file_path' => $path,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_size' => $file->getSize(),
-                ]);
-            }
+    // ۳. ثبت فایل‌ها و متصل کردن آن‌ها به فعالیت اول
+    if ($this->files) {
+        foreach ($this->files as $file) {
+            $path = $file->store('attachments', 'public');
+            $ticket->attachments()->create([
+                'user_id' => auth()->id(),
+                'activity_id' => $initialActivity->id, // متصل کردن فایل به اولین فعالیت
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+                'file_size' => $file->getSize(),
+            ]);
         }
-
-        session()->flash('success', 'تیکت با موفقیت ثبت شد.');
-        session()->flash('ticket_code', $ticketCode);
-
-        return redirect()->route('tickets.create');
     }
+
+    session()->flash('success', 'تیکت با موفقیت ثبت شد.');
+    session()->flash('ticket_code', $ticketCode);
+
+    return redirect()->route('tickets.create');
+}
 
     public function render()
     {

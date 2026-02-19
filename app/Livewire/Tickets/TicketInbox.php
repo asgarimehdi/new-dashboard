@@ -137,7 +137,8 @@ if ($this->viewMode === 'received') {
     public function showTicket($id)
     {
         // لود کردن رابطه‌ها بر اساس نام‌های درست در مدل‌ها
-        $this->showingTicket = Ticket::with(['activities.user', 'attachments', 'user', 'unit'])->findOrFail($id);
+
+        $this->showingTicket = Ticket::with(['attachments', 'activities.attachments', 'activities.user', 'user', 'unit'])->findOrFail($id);
     }
 
     public function closeDetail()
@@ -241,99 +242,83 @@ if ($this->viewMode === 'received') {
     }
 
     // ۳. متد نهایی تکمیل تیکت
-    public function submitAction($id = null)
-    {
-        // ۱. پیدا کردن آیدی تیکت (از ورودی یا متغیر کلاس)
-        $finalId = $id ?? $this->showingTicketId;
-        $ticket = Ticket::findOrFail($finalId);
+ public function submitAction($id = null)
+{
+    $finalId = $id ?? $this->showingTicketId;
+    $ticket = Ticket::findOrFail($finalId);
 
-        // ۲. بررسی منطق امنیتی: تیکت تایید نشده نباید مختومه شود
-        if ($ticket->status !== 'accepted' && !$this->targetUnitId) {
-            $this->addError('completionNote', 'تیکت تایید نشده را نمی‌توان مختومه کرد. ابتدا ارجاع دهید یا تایید کنید.');
-            return;
+    if ($ticket->status !== 'accepted' && !$this->targetUnitId) {
+        $this->addError('completionNote', 'تیکت تایید نشده را نمی‌توان مختومه کرد. ابتدا ارجاع دهید یا تایید کنید.');
+        return;
+    }
+
+    $actionType = $this->targetUnitId ? 'forwarded' : 'completed';
+
+    $this->validate([
+        'completionNote' => $actionType === 'completed' ? 'required|min:5' : 'nullable|max:1000',
+        'completionFiles' => 'nullable|array|max:5',
+        'completionFiles.*' => 'file|mimes:jpg,jpeg,png,pdf,zip,rar,docx,xlsx|max:5120',
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        // ۱. تعیین توضیحات و بروزرسانی وضعیت تیکت
+        if ($actionType === 'forwarded') {
+            $ticket->update([
+                'unit_id' => $this->targetUnitId,
+                'status' => 'forwarded',
+                'current_assignee_id' => null,
+            ]);
+            $description = "ارجاع تیکت به واحد: {$this->targetUnitName}";
+            if ($this->completionNote) { $description .= " | توضیحات: {$this->completionNote}"; }
+            $message = "تیکت با موفقیت به واحد {$this->targetUnitName} ارجاع شد.";
+        } else {
+            $ticket->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+            ]);
+            $description = "تیکت مختومه شد. گزارش نهایی: {$this->completionNote}";
+            $message = "تیکت با موفقیت مختومه و بسته شد.";
         }
 
-        // ۳. تعیین نوع عملیات (ارجاع یا اتمام)
-        $actionType = $this->targetUnitId ? 'forwarded' : 'completed';
-
-        // ۴. اعتبار سنجی داینامیک بر اساس نوع عملیات و فایل‌ها
-        $this->validate([
-            'completionNote' => $actionType === 'completed' ? 'required|min:5' : 'nullable|max:1000',
-            'completionFiles' => 'nullable|array|max:5',
-            'completionFiles.*' => 'file|mimes:jpg,jpeg,png,pdf,zip,rar,docx,xlsx|max:5120',
-        ], [
-            'completionNote.required' => 'نوشتن گزارش نهایی جهت بستن تیکت الزامی است.',
-            'completionFiles.max' => 'حداکثر ۵ فایل مجاز است.',
-            'completionFiles.*.mimes' => 'فرمت فایل انتخابی مجاز نیست.',
-            'completionFiles.*.max' => 'حجم فایل نباید بیش از ۵ مگابایت باشد.',
+        // ۲. ثبت فعالیت جدید (Activity) و دریافت آبجکت آن
+        $newActivity = $ticket->activities()->create([
+            'user_id' => auth()->id(),
+            'action' => $actionType,
+            'description' => $description,
+            'to_unit_id' => $this->targetUnitId ?? $ticket->unit_id,
         ]);
 
-        try {
-            DB::beginTransaction();
-
-            // ۵. آپلود و ثبت فایل‌ها
-            if ($this->completionFiles) {
-                foreach ($this->completionFiles as $file) {
-                    $path = $file->store('attachments', 'public');
-                    $ticket->attachments()->create([
-                        'user_id' => auth()->id(),
-                        'file_path' => $path,
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_size' => $file->getSize(), // اضافه کردن سایز فایل برای رفع خطای SQL
-                    ]);
-                }
-            }
-
-            // ۶. اجرای تغییرات بر اساس نوع عملیات
-            if ($actionType === 'forwarded') {
-                // سناریو ارجاع
-                $ticket->update([
-                    'unit_id' => $this->targetUnitId,
-                    'status' => 'forwarded',
-                    'current_assignee_id' => null, // ریست کردن کارشناس چون به واحد جدید می‌رود
+        // ۳. آپلود و ثبت فایل‌ها (متصل به فعالیت جدید)
+        if ($this->completionFiles) {
+            foreach ($this->completionFiles as $file) {
+                $path = $file->store('attachments', 'public');
+                $ticket->attachments()->create([
+                    'user_id' => auth()->id(),
+                    'activity_id' => $newActivity->id, // متصل کردن فایل به همین اقدام (ارجاع/اتمام)
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_size' => $file->getSize(),
                 ]);
-
-                $description = "ارجاع تیکت به واحد: {$this->targetUnitName} " ;
-                if ($this->completionNote) {
-                    $description .= " | توضیحات: {$this->completionNote}";
-                }
-
-                $message = "تیکت با موفقیت به واحد {$this->targetUnitName} ارجاع شد.";
-            } else {
-                // سناریو اتمام کار
-                $ticket->update([
-                    'status' => 'completed',
-                    'completed_at' => now(),
-                ]);
-
-                $description = "تیکت مختومه شد. گزارش نهایی: {$this->completionNote}";
-                $message = "تیکت با موفقیت مختومه و بسته شد.";
             }
-
-            // ۷. ثبت در تاریخچه فعالیت‌ها
-            $ticket->activities()->create([
-                'user_id' => auth()->id(),
-                'action' => $actionType,
-                'description' => $description,
-                'to_unit_id' => $this->targetUnitId ?? $ticket->unit_id,
-            ]);
-
-            DB::commit();
-
-            // ۸. بازنشانی فرم و بستن مودال
-            $this->reset(['isCompletionModalOpen', 'showingTicket', 'completionNote', 'completionFiles', 'targetUnitId', 'targetUnitName', 'unitSearch']);
-
-            // ارسال پیام موفقیت (در صورت استفاده از SweetAlert یا پیام متنی)
-            $this->dispatch('swal', [
-                'title' => 'عملیات موفق',
-                'text' => $message,
-                'icon' => 'success'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->addError('completionNote', 'خطایی در ثبت عملیات رخ داد: ' . $e->getMessage());
         }
+
+        DB::commit();
+
+        $this->reset(['isCompletionModalOpen', 'showingTicket', 'completionNote', 'completionFiles', 'targetUnitId', 'targetUnitName', 'unitSearch']);
+
+        $this->dispatch('swal', [
+            'title' => 'عملیات موفق',
+            'text' => $message,
+            'icon' => 'success'
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        $this->addError('completionNote', 'خطایی در ثبت عملیات رخ داد: ' . $e->getMessage());
     }
+}
     public function removeFile($index)
     {
         array_splice($this->completionFiles, $index, 1);

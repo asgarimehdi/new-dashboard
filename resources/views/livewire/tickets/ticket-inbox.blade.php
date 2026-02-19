@@ -60,7 +60,7 @@
                         class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all {{ $viewMode === 'sent' ? 'bg-white shadow-lg text-blue-700' : 'text-gray-500 hover:text-gray-700' }}">
                         ارسالی‌ها و اقدامات من
                     </button>
-                    
+
                 </div>
 
                 {{-- تب‌های وضعیت داینامیک --}}
@@ -81,16 +81,16 @@
                     <button wire:click="$set('statusFilter', 'completed')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'completed' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500' }}">تکمیل و نهایی شده</button>
                     @endif
                 </div>
-<div class="flex gap-4 mb-4 items-center">
-    <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded-sm bg-white border border-gray-200"></span>
-        <span class="text-[10px] text-gray-500 font-bold">تیکت‌های ایجاد شده توسط من</span>
-    </div>
-    <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded-sm bg-green-100 border border-gray-200"></span>
-        <span class="text-[10px] text-gray-500 font-bold">تیکت‌های ارجاعی (اقدام شده)</span>
-    </div>
-</div>
+                <div class="flex gap-4 mb-4 items-center">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-sm bg-white border border-gray-200"></span>
+                        <span class="text-[10px] text-gray-500 font-bold">تیکت‌های ایجاد شده توسط من</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-sm bg-green-100 border border-gray-200"></span>
+                        <span class="text-[10px] text-gray-500 font-bold">تیکت‌های ارجاعی (اقدام شده)</span>
+                    </div>
+                </div>
                 {{-- ادامه کد جدول تیکت‌ها که قبلا داشتید --}}
             </div>
             <table class="w-full text-right">
@@ -107,7 +107,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @forelse($tickets as $ticket)
-                    
+
                     @php
                     // تشخیص اینکه آیا کاربر فعلی سازنده این تیکت است یا خیر
                     $isOwner = $ticket->user_id === auth()->id();
@@ -366,7 +366,7 @@
     </div>
     @endif
     {{-- مودال جزئیات --}}
-    @if($showingTicket)
+   @if($showingTicket)
     <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-white/20">
             {{-- هدر --}}
@@ -380,50 +380,55 @@
 
             {{-- محتوا --}}
             <div class="p-6 overflow-y-auto space-y-8 text-right custom-scrollbar" dir="rtl">
-                {{-- متن اصلی تیکت --}}
+                
+                {{-- ۱. متن اصلی تیکت و فایل‌های اولیه --}}
                 <div class="relative p-5 bg-gradient-to-br from-gray-50 to-indigo-50/30 rounded-2xl border border-indigo-100/50 shadow-sm">
-                    <div class="absolute -top-3 right-4 px-3 py-1 bg-indigo-600 text-white text-[10px] rounded-full shadow-lg">شرح درخواست</div>
+                    <div class="absolute -top-3 right-4 px-3 py-1 bg-indigo-600 text-white text-[10px] rounded-full shadow-lg">شرح درخواست اصلی</div>
                     <p class="text-gray-700 leading-relaxed text-sm pt-2">{{ $showingTicket->content }}</p>
+                    
+                    {{-- نمایش فایل‌هایی که در لحظه شروع تیکت آپلود شده‌اند (activity_id ندارند) --}}
+                    @php 
+                        $initialFiles = $showingTicket->attachments->where('activity_id', null); 
+                    @endphp
+                    @if($initialFiles->count() > 0)
+                        <div class="mt-4 flex flex-wrap gap-2 border-t border-indigo-100 pt-3">
+                            @foreach($initialFiles as $file)
+                                <a href="{{ asset('storage/' . $file->file_path) }}" target="_blank" 
+                                   class="flex items-center gap-2 text-[11px] bg-white text-indigo-700 px-3 py-1.5 rounded-xl border border-indigo-200 hover:bg-indigo-50 transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                    {{ $file->file_name }}
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
-                {{-- تاریخچه و پیگیری‌ها --}}
+                {{-- ۲. تاریخچه و پیگیری‌ها (فعالیت‌ها) --}}
                 <div>
-                    <h4 class="text-sm font-bold text-gray-800 mb-6 flex items-center gap-2 pr-2 border-r-4 border-amber-500">تاریخچه و پیگیری‌ها</h4>
+                    <h4 class="text-sm font-bold text-gray-800 mb-6 flex items-center gap-2 pr-2 border-r-4 border-amber-500">تاریخچه اقدامات</h4>
                     <div class="relative space-y-6 before:absolute before:right-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-indigo-500 before:to-gray-100">
+                        
                         @foreach($showingTicket->activities->sortByDesc('created_at') as $activity)
                         <div class="relative pr-8">
-                            <div class="absolute right-0 top-1 w-6 h-6 rounded-full bg-white border-2 border-indigo-500 flex items-center justify-center z-10 shadow-sm transition-transform hover:scale-125">
-                                <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                            <div class="absolute right-0 top-1 w-6 h-6 rounded-full bg-white border-2 border-indigo-500 flex items-center justify-center z-10 shadow-sm">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
                             </div>
+                            
                             <div class="bg-gray-50/80 backdrop-blur-sm p-4 rounded-2xl border border-gray-100 shadow-sm group hover:bg-white hover:border-indigo-200 transition-all">
-                                <div class="flex justify-between items-center mb-2 text-[11px]">
+                                <div class="flex justify-between items-center mb-3 text-[11px]">
                                     <div class="flex items-center gap-3">
-                                        <span class="font-black text-gray-800 bg-white px-2 py-1 rounded-lg shadow-sm border">{{ $activity->user->full_name }}</span>
-
-                                        {{-- نمایش فایل‌های پیوست مربوط به این فعالیت به صورت سنجاق --}}
-                                        @php
-                                        // فرض بر این است که فایل‌ها یا به activity_id متصل هستند
-                                        // یا اگر اولین رکورد است، فایل‌های اصلی تیکت نشان داده شود
-                                        $attachments = $activity->attachments ?? collect();
-                                        if($loop->last && $showingTicket->attachments->where('activity_id', null)->count() > 0) {
-                                        $attachments = $showingTicket->attachments->where('activity_id', null);
-                                        }
-                                        @endphp
-
-                                        @if($attachments->count() > 0)
-                                        <div class="flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">
-                                            @foreach($attachments as $file)
-                                            <a href="{{ asset('storage/' . $file->file_path) }}"
-                                                target="_blank"
-                                                title="{{ $file->name }}"
-                                                class="text-indigo-600 hover:text-indigo-800 transition-colors">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                                                </svg>
-                                            </a>
-                                            @endforeach
-                                            <span class="text-[9px] font-bold text-indigo-400 mr-1">{{ $attachments->count() }} فایل</span>
-                                        </div>
+                                        <span class="font-black text-gray-800 bg-white px-2 py-1 rounded-lg shadow-sm border border-gray-100">{{ $activity->user->full_name }}</span>
+                                        
+                                        {{-- نمایش فایل‌های مخصوص این فعالیت --}}
+                                        @if($activity->attachments->count() > 0)
+                                            <div class="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-full border border-amber-100">
+                                                @foreach($activity->attachments as $actFile)
+                                                    <a href="{{ asset('storage/' . $actFile->file_path) }}" target="_blank" title="{{ $actFile->file_name }}" class="text-amber-600 hover:text-amber-800">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                                    </a>
+                                                @endforeach
+                                                <span class="text-[9px] font-bold text-amber-500 mr-1">{{ $activity->attachments->count() }} فایل پیوست</span>
+                                            </div>
                                         @endif
                                     </div>
                                     <span class="text-gray-400 font-mono">{{ jdate($activity->created_at)->format('H:i - Y/m/d') }}</span>
@@ -437,9 +442,9 @@
             </div>
 
             <div class="p-5 border-t bg-white flex justify-end">
-                <button wire:click="closeDetail" class="bg-gray-800 text-white px-8 py-2.5 rounded-2xl text-sm font-bold hover:bg-black transition-all shadow-lg shadow-gray-200">فهمیدم</button>
+                <button wire:click="closeDetail" class="bg-gray-800 text-white px-8 py-2.5 rounded-2xl text-sm font-bold hover:bg-black transition-all shadow-lg shadow-gray-200">متوجه شدم</button>
             </div>
         </div>
     </div>
-    @endif
+@endif
 </div>
