@@ -85,7 +85,7 @@ class CreateTicket extends Component
         $ticket->activities()->create([
             'user_id' => auth()->id(),
             'action' => 'created',
-            'description' => 'تیکت ایجاد شد.',
+            'description' => 'تیکت ایجاد شد و به واحد ' . $ticket->unit->name . ' اختصاص یافت.',
             'to_unit_id' => $this->unit_id,
             'is_internal' => false,
         ]);

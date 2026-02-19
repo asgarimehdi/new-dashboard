@@ -86,18 +86,23 @@ class TicketInbox extends Component
     $query = Ticket::with(['user', 'unit', 'assignee', 'activities']);
 
     // --- اصلاح فیلتر بر اساس جهت تیکت ---
-    if ($this->viewMode === 'received') {
-        // ورودی‌ها: تیکت‌هایی که الان در واحد من هستند
-        $query->where('unit_id', $user->unit_id);
-    } else {
-        // ارسالی‌ها: تیکت‌هایی که من ساخته‌ام یا من روی آن‌ها اقدامی (Activity) انجام داده‌ام
-        $query->where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)
-              ->orWhereHas('activities', function ($activityQuery) use ($user) {
+if ($this->viewMode === 'received') {
+    // ورودی‌ها: تیکت‌هایی که الان در واحد من هستند
+    $query->where('unit_id', $user->unit_id);
+} else {
+    // ارسالی‌ها:
+    $query->where(function ($q) use ($user) {
+        // ۱. تیکت‌هایی که من خودم ایجاد کرده‌ام (حتی اگر هنوز در واحد خودم باشد)
+        $q->where('user_id', $user->id)
+          // ۲. یا تیکت‌هایی که من روی آن‌ها اقدامی انجام داده‌ام "اما" الان دیگر در واحد من نیستند
+          ->orWhere(function ($subQ) use ($user) {
+              $subQ->whereHas('activities', function ($activityQuery) use ($user) {
                   $activityQuery->where('user_id', $user->id);
-              });
-        });
-    }
+              })
+              ->where('unit_id', '!=', $user->unit_id); // تیکت از واحد من خارج شده باشد
+          });
+    });
+}
 
     // --- فیلتر وضعیت‌ها ---
     if ($this->statusFilter === 'pending') {
@@ -288,7 +293,7 @@ class TicketInbox extends Component
                     'current_assignee_id' => null, // ریست کردن کارشناس چون به واحد جدید می‌رود
                 ]);
 
-                $description = "ارجاع به واحد: {$this->targetUnitName}";
+                $description = "ارجاع تیکت به واحد: {$this->targetUnitName} " ;
                 if ($this->completionNote) {
                     $description .= " | توضیحات: {$this->completionNote}";
                 }

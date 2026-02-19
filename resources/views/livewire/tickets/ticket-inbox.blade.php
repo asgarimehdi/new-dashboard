@@ -54,11 +54,11 @@
                 <div class="flex bg-gray-200 p-1 rounded-2xl w-fit mb-8 shadow-inner">
                     <button wire:click="$set('viewMode', 'received'); $set('statusFilter', 'pending')"
                         class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all {{ $viewMode === 'received' ? 'bg-white shadow-lg text-blue-700' : 'text-gray-500 hover:text-gray-700' }}">
-                        ورودی‌های واحد
+                        ورودی‌ها و اقدامات من
                     </button>
                     <button wire:click="$set('viewMode', 'sent'); $set('statusFilter', 'pending')"
                         class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all {{ $viewMode === 'sent' ? 'bg-white shadow-lg text-blue-700' : 'text-gray-500 hover:text-gray-700' }}">
-                        ارسالی‌های من
+                        ارسالی‌ها و اقدامات من
                     </button>
                     
                 </div>
