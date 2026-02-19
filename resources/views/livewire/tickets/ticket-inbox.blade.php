@@ -180,7 +180,8 @@
                                 {{-- دکمه تایید و رد فقط برای تیکت‌های پذیرفته نشده --}}
                                 @if($ticket->status !== 'accepted' &&
                                 $ticket->status !== 'rejected'&&
-                                $ticket->status !== 'completed')
+                                $ticket->status !== 'completed'
+                                && $ticket->unit_id == auth()->user()->unit_id)
                                 <button wire:click="acceptTicket({{ $ticket->id }})"
                                     class="group relative p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
                                     title="تایید و شروع کار">
@@ -211,7 +212,9 @@
                                     <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">جزئیات</span>
                                 </button>
 
-                                @if($ticket->status !== 'completed' && $ticket->status !== 'rejected')
+                                @if($ticket->status !== 'completed' 
+                                && $ticket->status !== 'rejected'
+                                && $ticket->unit_id == auth()->user()->unit_id)
                                 <button wire:click="openCompletionModal({{ $ticket->id }})"
                                     class="group relative p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                                     title="ارجاع یا اتمام کار">
