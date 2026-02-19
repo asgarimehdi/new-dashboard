@@ -72,57 +72,62 @@ class TicketInbox extends Component
         ]);
     }
     public function render()
-    {
-        $user = auth()->user();
-        $units = [];
+{
+    $user = auth()->user();
+    $units = [];
 
-        // همان منطق جستجوی واحدها که داشتی برای بخش ارجاع
-        if (strlen($this->unitSearch) > 1) {
-            $units = Unit::where('name', 'like', '%' . $this->unitSearch . '%')
-                ->where('can_receive_tickets', true)
-                ->limit(5)->get();
-        }
-
-        $query = Ticket::with(['user', 'unit', 'assignee']);
-
-        // --- فیلتر بر اساس جهت تیکت (ورودی / خروجی) ---
-        if ($this->viewMode === 'received') {
-            // تیکت‌هایی که به واحد من آمده است
-            $query->where('unit_id', $user->unit_id);
-        } else {
-            // تیکت‌هایی که من خودم ایجاد کرده‌ام
-            $query->where('user_id', $user->id);
-        }
-
-        // --- فیلتر وضعیت‌ها بر اساس تب انتخاب شده ---
-        if ($this->statusFilter === 'pending') {
-            $query->whereIn('status', ['created', 'forwarded']);
-        } elseif ($this->statusFilter !== 'all') {
-            $query->where('status', $this->statusFilter);
-        }
-        if ($this->dateFrom) {
-            $miladiFrom = \Morilog\Jalali\Jalalian::fromFormat('Y/m/d', $this->dateFrom)->toCarbon()->startOfDay();
-            $query->where('created_at', '>=', $miladiFrom);
-        }
-
-        if ($this->dateTo) {
-            $miladiTo = \Morilog\Jalali\Jalalian::fromFormat('Y/m/d', $this->dateTo)->toCarbon()->endOfDay();
-            $query->where('created_at', '<=', $miladiTo);
-        }
-        // --- منطق جستجوی متن ---
-        if (!empty($this->search)) {
-            $query->where(function ($q) {
-                $q->where('subject', 'like', '%' . $this->search . '%')
-                    ->orWhere('ticket_code', 'like', '%' . $this->search . '%')
-                    ->orWhere('content', 'like', '%' . $this->search . '%');
-            });
-        }
-
-        return view('livewire.tickets.ticket-inbox', [
-            'tickets' => $query->latest()->paginate(15),
-            'units' => $units
-        ]);
+    if (strlen($this->unitSearch) > 1) {
+        $units = Unit::where('name', 'like', '%' . $this->unitSearch . '%')
+            ->where('can_receive_tickets', true)
+            ->limit(5)->get();
     }
+
+    // لود کردن رابطه‌های مورد نیاز شامل فعالیت‌ها
+    $query = Ticket::with(['user', 'unit', 'assignee', 'activities']);
+
+    // --- اصلاح فیلتر بر اساس جهت تیکت ---
+    if ($this->viewMode === 'received') {
+        // ورودی‌ها: تیکت‌هایی که الان در واحد من هستند
+        $query->where('unit_id', $user->unit_id);
+    } else {
+        // ارسالی‌ها: تیکت‌هایی که من ساخته‌ام یا من روی آن‌ها اقدامی (Activity) انجام داده‌ام
+        $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+              ->orWhereHas('activities', function ($activityQuery) use ($user) {
+                  $activityQuery->where('user_id', $user->id);
+              });
+        });
+    }
+
+    // --- فیلتر وضعیت‌ها ---
+    if ($this->statusFilter === 'pending') {
+        $query->whereIn('status', ['created', 'forwarded']);
+    } elseif ($this->statusFilter !== 'all') {
+        $query->where('status', $this->statusFilter);
+    }
+
+    // ... (بقیه کدهای تاریخ و جستجو که داشتی دست نخورده باقی می‌ماند) ...
+    if ($this->dateFrom) {
+        $miladiFrom = \Morilog\Jalali\Jalalian::fromFormat('Y/m/d', $this->dateFrom)->toCarbon()->startOfDay();
+        $query->where('created_at', '>=', $miladiFrom);
+    }
+    if ($this->dateTo) {
+        $miladiTo = \Morilog\Jalali\Jalalian::fromFormat('Y/m/d', $this->dateTo)->toCarbon()->endOfDay();
+        $query->where('created_at', '<=', $miladiTo);
+    }
+    if (!empty($this->search)) {
+        $query->where(function ($q) {
+            $q->where('subject', 'like', '%' . $this->search . '%')
+                ->orWhere('ticket_code', 'like', '%' . $this->search . '%')
+                ->orWhere('content', 'like', '%' . $this->search . '%');
+        });
+    }
+
+    return view('livewire.tickets.ticket-inbox', [
+        'tickets' => $query->latest()->paginate(15),
+        'units' => $units
+    ]);
+}
 
     public function showTicket($id)
     {

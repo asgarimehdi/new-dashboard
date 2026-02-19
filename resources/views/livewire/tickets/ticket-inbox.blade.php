@@ -60,6 +60,7 @@
                         class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all {{ $viewMode === 'sent' ? 'bg-white shadow-lg text-blue-700' : 'text-gray-500 hover:text-gray-700' }}">
                         ارسالی‌های من
                     </button>
+                    
                 </div>
 
                 {{-- تب‌های وضعیت داینامیک --}}
@@ -80,7 +81,16 @@
                     <button wire:click="$set('statusFilter', 'completed')" class="px-5 py-1.5 rounded-full border text-xs font-bold {{ $statusFilter === 'completed' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500' }}">تکمیل و نهایی شده</button>
                     @endif
                 </div>
-
+<div class="flex gap-4 mb-4 items-center">
+    <div class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-sm bg-white border border-gray-200"></span>
+        <span class="text-[10px] text-gray-500 font-bold">تیکت‌های ایجاد شده توسط من</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-sm bg-green-100 border border-gray-200"></span>
+        <span class="text-[10px] text-gray-500 font-bold">تیکت‌های ارجاعی (اقدام شده)</span>
+    </div>
+</div>
                 {{-- ادامه کد جدول تیکت‌ها که قبلا داشتید --}}
             </div>
             <table class="w-full text-right">
@@ -97,8 +107,19 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @forelse($tickets as $ticket)
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="p-4">
+                    
+                    @php
+                    // تشخیص اینکه آیا کاربر فعلی سازنده این تیکت است یا خیر
+                    $isOwner = $ticket->user_id === auth()->id();
+                    @endphp
+
+                    <tr class="transition-all {{ $isOwner ? 'bg-white' : 'bg-green-100' }} hover:bg-indigo-50/30">
+                        <td class="p-4 relative">
+                            {{-- اضافه کردن یک نوار رنگی کوچک در کنار ردیف برای تشخیص سریع‌تر --}}
+                            @if($isOwner)
+                            <div class="absolute right-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-l-md" title="ایجاد شده توسط شما"></div>
+                            @endif
+
                             <span class="font-mono text-indigo-600 block text-xs">#{{ $ticket->ticket_code }}</span>
                             <span class="text-sm font-bold text-gray-700">{{ $ticket->user?->full_name ?? 'کاربر سیستم' }}</span>
                         </td>
@@ -151,19 +172,18 @@
                         </td>
                         <td class="p-4 text-center">
                             @if(in_array($ticket->status, ['created', 'forwarded']))
-                            <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
-                                {{ $ticket->unit?->name ?? '---' }}
-                            </span>
-                            @elseif(in_array($ticket->status, ['rejected']))
-                            <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
-                                <span class="text-xs text-gray-400">رد شده</span>
-                            </span>
-                            @elseif(in_array($ticket->status, ['completed']))
-                            <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
-                                <span class="text-xs text-gray-400">بسته شده</span>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] text-gray-400 mb-1">نزد واحد:</span>
+                                <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
+                                    {{ $ticket->unit?->name ?? '---' }}
+                                </span>
+                            </div>
+                            @elseif($ticket->status === 'accepted')
+                            <span class="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200">
+                                تایید شده در {{ $ticket->unit?->name }}
                             </span>
                             @else
-                            <span class="text-xs text-gray-400">تایید شده</span>
+                            <span class="text-xs text-gray-400">نهایی شده</span>
                             @endif
                         </td>
                         <td class="p-4 text-left flex items-center justify-end gap-2">
@@ -212,7 +232,7 @@
                                     <span class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] px-2 py-1 rounded">جزئیات</span>
                                 </button>
 
-                                @if($ticket->status !== 'completed' 
+                                @if($ticket->status !== 'completed'
                                 && $ticket->status !== 'rejected'
                                 && $ticket->unit_id == auth()->user()->unit_id)
                                 <button wire:click="openCompletionModal({{ $ticket->id }})"
@@ -346,7 +366,7 @@
     </div>
     @endif
     {{-- مودال جزئیات --}}
-   @if($showingTicket)
+    @if($showingTicket)
     <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-white/20">
             {{-- هدر --}}
@@ -379,24 +399,24 @@
                                 <div class="flex justify-between items-center mb-2 text-[11px]">
                                     <div class="flex items-center gap-3">
                                         <span class="font-black text-gray-800 bg-white px-2 py-1 rounded-lg shadow-sm border">{{ $activity->user->full_name }}</span>
-                                        
+
                                         {{-- نمایش فایل‌های پیوست مربوط به این فعالیت به صورت سنجاق --}}
-                                        @php 
-                                            // فرض بر این است که فایل‌ها یا به activity_id متصل هستند 
-                                            // یا اگر اولین رکورد است، فایل‌های اصلی تیکت نشان داده شود
-                                            $attachments = $activity->attachments ?? collect();
-                                            if($loop->last && $showingTicket->attachments->where('activity_id', null)->count() > 0) {
-                                                $attachments = $showingTicket->attachments->where('activity_id', null);
-                                            }
+                                        @php
+                                        // فرض بر این است که فایل‌ها یا به activity_id متصل هستند
+                                        // یا اگر اولین رکورد است، فایل‌های اصلی تیکت نشان داده شود
+                                        $attachments = $activity->attachments ?? collect();
+                                        if($loop->last && $showingTicket->attachments->where('activity_id', null)->count() > 0) {
+                                        $attachments = $showingTicket->attachments->where('activity_id', null);
+                                        }
                                         @endphp
 
                                         @if($attachments->count() > 0)
                                         <div class="flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">
                                             @foreach($attachments as $file)
-                                            <a href="{{ asset('storage/' . $file->file_path) }}" 
-                                               target="_blank" 
-                                               title="{{ $file->name }}" 
-                                               class="text-indigo-600 hover:text-indigo-800 transition-colors">
+                                            <a href="{{ asset('storage/' . $file->file_path) }}"
+                                                target="_blank"
+                                                title="{{ $file->name }}"
+                                                class="text-indigo-600 hover:text-indigo-800 transition-colors">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
                                                 </svg>
